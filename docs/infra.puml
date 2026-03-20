@@ -1,0 +1,54 @@
+@startuml
+skinparam linetype ortho
+title AWS Infrastructure - Deployment Diagram
+
+' ====== AWS ======
+node "AWS Services" {
+  node "Recognition Service" {
+    component "Recognition API"
+  }
+
+
+  node "Public Subnet" {
+    node "EC2 Instance" {
+      component "MQTT Broker"
+    }
+
+    node "AWS Amplify" {
+      component "Frontend"
+    }
+  }
+
+  node "Private Subnet" {
+    node "EC2 - Backend Server" {
+      component "Backend App"
+
+      database "DB"
+    }
+  }
+}
+
+
+' ====== EXTERNO ======
+node "ESP32 Device" {
+  component "ESP32"
+}
+
+cloud "Internet"
+
+
+' ====== RELACIONES ======
+
+ESP32 --> "MQTT Broker" : MQTT
+
+"MQTT Broker" --> "Backend App" : MQTT
+
+"Frontend" --> "Backend App" : HTTP
+
+"Backend App" -l-> "DB"
+
+"Backend App" --> "Recognition API": API
+
+"Internet" -l-> "Frontend" : Web
+
+@enduml

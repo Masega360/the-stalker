@@ -1,0 +1,85 @@
+@startuml
+skinparam linetype ortho
+
+enum ROLE {
+  OWNER
+  ADMIN
+  USER
+}
+
+entity "User" {
+  *id: uuid
+  --
+  username: string
+  p_hash: string
+  role: enum.ROLE
+}
+
+entity "UserInZone" {
+    *user_id: uuid <<FK>>
+    *zone_id: uuid <<FK>>
+}
+
+entity "Zone" {
+  *id: uuid
+  --
+  name: string
+}
+
+entity "Room" {
+  *id: uuid
+  --
+  zone_id: uuid <<FK>>
+  name: string
+}
+
+entity "Stats" {
+  *id: uuid
+  --
+  quantity: int
+  enum STAT_TYPE type
+  time: string
+}
+
+enum STAT_TYPE {
+    PEOPLE
+    GENRE
+    AGE
+}
+
+Stats "1" -u- "1" STAT_TYPE : Is type
+
+entity "Device" {
+  *id: uuid
+  --
+  room_id: uuid
+  ip: string
+  status: boolean
+  type: enum.DEVICES
+}
+
+enum DEVICES {
+  SENSOR
+  ACTUADOR
+}
+
+entity "Log" {
+  *id: uuid
+  --
+  device_id: uuid
+  time: timestamp
+  body: string
+  code: int
+}
+
+Device "1" -l- "1" DEVICES : is
+User "1" -- "1" ROLE : has
+
+User "1" -- "n" "UserInZone" : Is in
+Zone "1" -- "n" "UserInZone": Is in
+
+Zone "1" -- "n" Room : has
+Room "1" -l- "n" Stats : has
+Room "1" -- "n" Device : has
+Device "1" -r- "n" Log : has
+@enduml
