@@ -1,0 +1,54 @@
+@startuml
+skinparam linetype ortho
+
+entity "User" {
+  * id
+  --
+  username
+  p_hash
+  type
+}
+
+entity "Zone" {
+  * id
+  --
+  name
+}
+
+entity "Room" {
+  * id
+  --
+  name
+}
+
+entity "Stats" {
+  * id
+  --
+  quant
+  type
+  time
+}
+
+entity "Device" {
+  * id
+  --
+  ip
+  status
+  type
+}
+
+entity "Log" {
+  * id
+  --
+  time
+  body
+  code
+}
+
+
+User "n" -- "n" Zone : has
+Zone "1" -- "n" Room : has
+Room "1" -- "n" Stats : has
+Room "1" -- "n" Device : has
+Device "1" -- "n" Log : has
+@enduml
