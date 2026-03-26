@@ -15,7 +15,7 @@ enum STAT_TYPE {
 
 enum DEVICES {
   SENSOR
-  ACTUADOR
+  ACTUATOR
 }
 
 entity "User" {
@@ -29,6 +29,7 @@ entity "User" {
 entity "UserInZone" {
   *user_id: uuid <<FK>>
   *zone_id: uuid <<FK>>
+  created_at: timestamp
 }
 
 entity "Zone" {
@@ -56,14 +57,10 @@ entity "Device" {
 entity "Stats" {
   *id: uuid
   --
+  device_id: uuid <<FK>>
   quantity: int
   type: STAT_TYPE
   time: timestamp
-}
-
-entity "DeviceStats" {
-  *device_id: uuid <<FK>>
-  *stats_id: uuid <<FK>>
 }
 
 entity "Log" {
@@ -71,7 +68,7 @@ entity "Log" {
   --
   device_id: uuid <<FK>>
   time: timestamp
-  body: string
+  body: text
   code: int
 }
 
@@ -79,7 +76,7 @@ User "1" -- "n" UserInZone
 Zone "1" -- "n" UserInZone
 Zone "1" -- "n" Room
 Room "1" -- "n" Device
-Device "1" -- "n" DeviceStats
-Stats "1" -- "1" DeviceStats
+Device "1" -- "n" Stats
 Device "1" -- "n" Log
+
 @enduml
