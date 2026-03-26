@@ -12,17 +12,12 @@ node "AWS Services" {
   node "Public Subnet" {
     node "EC2 Instance" {
       component "MQTT Broker"
-    }
-
-    node "AWS Amplify" {
-      component "Frontend"
+      component "App"
     }
   }
 
   node "Private Subnet" {
-    node "EC2 - Backend Server" {
-      component "Backend App"
-
+    node "EC2 - DB server" {
       database "DB"
     }
   }
@@ -41,14 +36,12 @@ cloud "Internet"
 
 ESP32 --> "MQTT Broker" : MQTT
 
-"MQTT Broker" --> "Backend App" : MQTT
+"MQTT Broker" --> "App" : MQTT
 
-"Frontend" --> "Backend App" : HTTP
+"App" -l-> "DB"
 
-"Backend App" -l-> "DB"
+"App" --> "Recognition API": API
 
-"Backend App" --> "Recognition API": API
-
-"Internet" -l-> "Frontend" : Web
+"Internet" -l-> "App" : HTTP
 
 @enduml
