@@ -1,0 +1,36 @@
+@startuml
+skinparam linetype ortho
+title AWS Infrastructure - Deployment Diagram
+
+node "AWS Services" {
+  node "Rekognition Service" {
+    component "Rekognition API"
+  }
+  node "Public Subnet" {
+    node "EC2 - App" {
+      component "MQTT Broker"
+      component "Nuxt App"
+    }
+  }
+  node "Private Subnet" {
+    node "EC2 - Worker" {
+      component "Python Worker"
+    }
+    node "EC2 - DB" {
+      database "DB"
+    }
+  }
+}
+
+node "ESP32 Device" {
+  component "ESP32"
+}
+cloud "Internet"
+
+ESP32 --> "MQTT Broker" : MQTT
+"MQTT Broker" --> "Python Worker" : MQTT
+"Python Worker" --> "Rekognition API" : API
+"Python Worker" --> "Nuxt App" : HTTP POST
+"Nuxt App" --> "DB" : interno
+"Internet" --> "Nuxt App" : HTTP
+@enduml
