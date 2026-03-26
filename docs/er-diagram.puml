@@ -7,17 +7,28 @@ enum ROLE {
   USER
 }
 
+enum STAT_TYPE {
+  PEOPLE
+  GENRE
+  AGE
+}
+
+enum DEVICES {
+  SENSOR
+  ACTUADOR
+}
+
 entity "User" {
   *id: uuid
   --
   username: string
   p_hash: string
-  role: enum.ROLE
+  role: ROLE
 }
 
 entity "UserInZone" {
-    *user_id: uuid <<FK>>
-    *zone_id: uuid <<FK>>
+  *user_id: uuid <<FK>>
+  *zone_id: uuid <<FK>>
 }
 
 entity "Zone" {
@@ -33,53 +44,42 @@ entity "Room" {
   name: string
 }
 
+entity "Device" {
+  *id: uuid
+  --
+  room_id: uuid <<FK>>
+  ip: string
+  status: boolean
+  type: DEVICES
+}
+
 entity "Stats" {
   *id: uuid
   --
   quantity: int
-  enum STAT_TYPE type
-  time: string
+  type: STAT_TYPE
+  time: timestamp
 }
 
-enum STAT_TYPE {
-    PEOPLE
-    GENRE
-    AGE
-}
-
-Stats "1" -u- "1" STAT_TYPE : Is type
-
-entity "Device" {
-  *id: uuid
-  --
-  room_id: uuid
-  ip: string
-  status: boolean
-  type: enum.DEVICES
-}
-
-enum DEVICES {
-  SENSOR
-  ACTUADOR
+entity "DeviceStats" {
+  *device_id: uuid <<FK>>
+  *stats_id: uuid <<FK>>
 }
 
 entity "Log" {
   *id: uuid
   --
-  device_id: uuid
+  device_id: uuid <<FK>>
   time: timestamp
   body: string
   code: int
 }
 
-Device "1" -l- "1" DEVICES : is
-User "1" -- "1" ROLE : has
-
-User "1" -- "n" "UserInZone" : Is in
-Zone "1" -- "n" "UserInZone": Is in
-
-Zone "1" -- "n" Room : has
-Room "1" -l- "n" Stats : has
-Room "1" -- "n" Device : has
-Device "1" -r- "n" Log : has
+User "1" -- "n" UserInZone
+Zone "1" -- "n" UserInZone
+Zone "1" -- "n" Room
+Room "1" -- "n" Device
+Device "1" -- "n" DeviceStats
+Stats "1" -- "1" DeviceStats
+Device "1" -- "n" Log
 @enduml
