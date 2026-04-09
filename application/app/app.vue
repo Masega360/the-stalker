@@ -1,4 +1,11 @@
 <script setup>
+const auth = useAuth()
+
+// Fetch user on initial load
+onMounted(() => {
+  auth.fetchUser()
+})
+
 useHead({
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' }
@@ -11,17 +18,14 @@ useHead({
   }
 })
 
-const title = 'Nuxt Starter Template'
-const description = 'A production-ready starter template powered by Nuxt UI. Build beautiful, accessible, and performant applications in minutes, not hours.'
+const title = 'The Stalker'
+const description = 'Sistema de monitorizacion'
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
-  ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/starter-light.png',
-  twitterCard: 'summary_large_image'
+  ogDescription: description
 })
 </script>
 
@@ -29,24 +33,49 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/">
-          <AppLogo class="w-auto h-6 shrink-0" />
+        <NuxtLink to="/" class="text-lg font-semibold tracking-tight">
+          The Stalker
         </NuxtLink>
-
-        <TemplateMenu />
       </template>
 
       <template #right>
-        <UColorModeButton />
+        <div class="flex items-center gap-4 mr-2">
+          <div v-if="auth.loading.value" class="text-sm text-gray-500">
+            Cargando...
+          </div>
+          <template v-else-if="auth.user.value">
+            <span class="text-sm font-medium">
+              {{ auth.user.value.username }}
+            </span>
+            <UButton
+              color="error"
+              variant="soft"
+              size="xs"
+              @click="auth.logout"
+            >
+              Salir
+            </UButton>
+          </template>
+          <template v-else>
+            <UButton
+              to="/auth/login"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+            >
+              Login
+            </UButton>
+            <UButton
+              to="/auth/register"
+              color="primary"
+              size="sm"
+            >
+              Register
+            </UButton>
+          </template>
+        </div>
 
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
+        <UColorModeButton />
       </template>
     </UHeader>
 
@@ -54,24 +83,13 @@ useSeoMeta({
       <NuxtPage />
     </UMain>
 
-    <USeparator icon="i-simple-icons-nuxtdotjs" />
+    <USeparator icon="i-lucide-activity" />
 
     <UFooter>
       <template #left>
         <p class="text-sm text-muted">
-          Built with Nuxt UI • © {{ new Date().getFullYear() }}
+          The Stalker • © {{ new Date().getFullYear() }}
         </p>
-      </template>
-
-      <template #right>
-        <UButton
-          to="https://github.com/nuxt-ui-templates/starter"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
       </template>
     </UFooter>
   </UApp>
