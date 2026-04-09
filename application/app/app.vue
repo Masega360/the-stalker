@@ -33,8 +33,8 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/" class="text-lg font-semibold tracking-tight">
-          The Stalker
+        <NuxtLink to="/" class="inline-flex items-center">
+          <AppLogo />
         </NuxtLink>
       </template>
 

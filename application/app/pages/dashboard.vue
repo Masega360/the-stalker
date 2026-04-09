@@ -335,16 +335,20 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.id.slice
                   </UButton>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-2 pl-6">
-                  <UBadge
+                  <NuxtLink
                     v-for="device in room.devices"
                     :key="device.id"
-                    :color="statusColor(device.status)"
-                    variant="subtle"
-                    class="gap-1"
+                    :to="`/device/${device.id}`"
                   >
-                    <UIcon :name="device.type === 'SENSOR' ? 'i-lucide-scan-search' : 'i-lucide-radio' " class="size-3.5" />
-                    {{ deviceLabel(device) }} ({{ device.ip }})
-                  </UBadge>
+                    <UBadge
+                      :color="statusColor(device.status)"
+                      variant="subtle"
+                      class="gap-1 hover:opacity-80 cursor-pointer"
+                    >
+                      <UIcon :name="device.type === 'SENSOR' ? 'i-lucide-scan-search' : 'i-lucide-radio' " class="size-3.5" />
+                      {{ deviceLabel(device) }} ({{ device.ip }})
+                    </UBadge>
+                  </NuxtLink>
                 </div>
               </div>
             </div>
