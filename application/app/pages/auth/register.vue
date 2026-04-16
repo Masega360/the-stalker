@@ -1,9 +1,11 @@
 <script setup lang="ts">
 const auth = useAuth()
+
 const registerForm = reactive({
   username: "",
   password: ""
 })
+
 const loadingRegister = ref(false)
 const feedback = ref("")
 
@@ -94,7 +96,7 @@ const register = async () => {
             class="w-full"
           />
         </div>
-        
+
         <div v-if="feedback" class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">
           <UIcon name="i-lucide-alert-circle" class="w-4 h-4 shrink-0" />
           {{ feedback }}
@@ -112,7 +114,7 @@ const register = async () => {
         </UButton>
 
         <div class="text-sm text-center mt-6 text-gray-500 dark:text-gray-400">
-          ¿Ya tenés una cuenta? 
+          ¿Ya tenés una cuenta?
           <NuxtLink to="/auth/login" class="font-semibold text-cyan-600 hover:text-cyan-500 transition-colors underline-offset-4 hover:underline">
             Iniciá sesión acá
           </NuxtLink>
