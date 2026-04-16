@@ -1,11 +1,27 @@
-from dotenv import load_dotenv
-import os
+from mqtt_subscriber import start
+from image_formatter import format_image
+from preprocessor import preprocess
+from rekognition_handler import handle
+from stats.provider import provide
+from api_sender import send
 
-load_dotenv()
+def on_image(payload, device_id):
+    image = format_image(payload)
+    if image is None:
+        return
 
-MQTT_HOST = os.getenv("MQTT_HOST")
-MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-MQTT_TOPIC = os.getenv("MQTT_TOPIC")
+    if not preprocess(image):
+        return
+
+    response = handle(image)
+    if response is None:
+        return
+
+    stats = provide(response, device_id)
+    if not stats:
+        return
+
+    send(stats)
 
 if __name__ == "__main__":
-    print("Worker iniciado")
+    start(on_image)
