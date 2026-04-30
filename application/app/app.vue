@@ -1,5 +1,6 @@
 <script setup>
 const auth = useAuth()
+const userInitial = computed(() => auth.user.value?.username?.charAt(0).toUpperCase() ?? '?')
 
 // Fetch user on initial load
 onMounted(() => {
@@ -44,9 +45,14 @@ useSeoMeta({
             Cargando...
           </div>
           <template v-else-if="auth.user.value">
-            <span class="text-sm font-medium">
-              {{ auth.user.value.username }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="size-7 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200 inline-flex items-center justify-center text-xs font-semibold">
+                {{ userInitial }}
+              </span>
+              <span class="text-sm font-medium">
+                {{ auth.user.value.username }}
+              </span>
+            </div>
             <UButton
               color="error"
               variant="soft"

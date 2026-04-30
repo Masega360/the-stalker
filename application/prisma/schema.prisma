@@ -4,7 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -19,12 +20,6 @@ enum ROLE {
   OWNER
   ADMIN
   USER
-}
-
-enum STAT_TYPE {
-  PEOPLE
-  GENRE
-  AGE
 }
 
 enum DEVICES {
@@ -100,17 +95,47 @@ model Device {
   updated_at DateTime @updatedAt
 }
 
-model Stats {
-  id        String     @id @default(uuid())
-  quantity  Int
-  type      STAT_TYPE
-  time      DateTime
+model StatDataType {
+  id   String  @id @default(uuid())
+  name String  @unique // ej: int, float, string
+  unit String? // ej: #, %, años, metros
 
-  device_id String
-  device    Device     @relation(fields: [device_id], references: [id])
+  stat_types StatType[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model StatType {
+  id   String @id @default(uuid())
+  name String @unique // ej: people_count, age_avg
+
+  data_type_id String
+  data_type    StatDataType @relation(fields: [data_type_id], references: [id])
+
+  stats Stats[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Stats {
+  id          String   @id @default(uuid())
+  quantity    Int
+  time        DateTime @default(now())
+  snapshot_id String?
+
+  device_id String?
+  device    Device? @relation(fields: [device_id], references: [id])
+
+  stat_type_id String
+  stat_type    StatType @relation(fields: [stat_type_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([snapshot_id])
+  @@index([stat_type_id])
 }
 
 model Log {

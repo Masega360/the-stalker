@@ -1,12 +1,24 @@
 <script setup lang="ts">
-type StatType = 'PEOPLE' | 'GENRE' | 'AGE'
 type DeviceType = 'SENSOR' | 'ACTUATOR'
+
+interface StatDataType {
+  id: string
+  name: string
+  unit: string | null
+}
+
+interface StatType {
+  id: string
+  name: string
+  data_type: StatDataType
+}
 
 interface DeviceStat {
   id: string
   quantity: number
-  type: StatType
   time: string
+  snapshot_id: string | null
+  stat_type: StatType
 }
 
 interface DeviceDetails {
@@ -42,10 +54,24 @@ const loadDevice = async () => {
 
 watch(deviceId, loadDevice, { immediate: true })
 
-const statColor = (type: StatType) => {
-  if (type === 'PEOPLE') return 'primary'
-  if (type === 'AGE') return 'warning'
-  return 'neutral'
+const STAT_COLORS = ['primary', 'warning', 'info', 'success', 'error', 'secondary'] as const
+type StatColor = typeof STAT_COLORS[number]
+
+const hashString = (value: string) => {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash << 5) - hash + value.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+const statColor = (name: string): StatColor =>
+  STAT_COLORS[hashString(name) % STAT_COLORS.length]!
+
+const formatValue = (stat: DeviceStat) => {
+  const unit = stat.stat_type.data_type.unit
+  return unit ? `${stat.quantity} ${unit}` : String(stat.quantity)
 }
 
 const formatDate = (value: string) =>
@@ -55,6 +81,38 @@ const formatDate = (value: string) =>
     hour: '2-digit',
     minute: '2-digit'
   })
+
+interface StatGroup {
+  name: string
+  dataType: string
+  unit: string | null
+  items: DeviceStat[]
+  latest: DeviceStat
+}
+
+const groupedStats = computed<StatGroup[]>(() => {
+  if (!device.value) return []
+  const map = new Map<string, StatGroup>()
+  for (const stat of device.value.stats) {
+    const key = stat.stat_type.id
+    const existing = map.get(key)
+    if (existing) {
+      existing.items.push(stat)
+      if (new Date(stat.time) > new Date(existing.latest.time)) {
+        existing.latest = stat
+      }
+    } else {
+      map.set(key, {
+        name: stat.stat_type.name,
+        dataType: stat.stat_type.data_type.name,
+        unit: stat.stat_type.data_type.unit,
+        items: [stat],
+        latest: stat
+      })
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+})
 </script>
 
 <template>
@@ -65,7 +123,7 @@ const formatDate = (value: string) =>
           <NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink> / Device
         </p>
         <h1 class="text-2xl font-bold tracking-tight">
-          Dispositivo {{ device?.id.slice(0, 8) || '' }}
+          {{ device?.ip || 'Dispositivo' }}
         </h1>
       </div>
       <UButton to="/dashboard" variant="ghost" color="neutral">
@@ -81,7 +139,7 @@ const formatDate = (value: string) =>
       <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UCard>
           <template #header>
-            <p class="text-sm text-muted">IP</p>
+            <p class="text-sm text-muted">ID del dispositivo</p>
           </template>
           <p class="text-xl font-semibold">{{ device.ip }}</p>
         </UCard>
@@ -109,6 +167,28 @@ const formatDate = (value: string) =>
         </UCard>
       </section>
 
+      <section v-if="groupedStats.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <UCard v-for="group in groupedStats" :key="group.name">
+          <template #header>
+            <div class="flex items-center justify-between gap-2">
+              <UBadge :color="statColor(group.name)" variant="subtle">
+                {{ group.name }}
+              </UBadge>
+              <UBadge color="neutral" variant="outline" size="sm">
+                {{ group.dataType }}
+              </UBadge>
+            </div>
+          </template>
+          <p class="text-3xl font-semibold">
+            {{ group.latest.quantity }}
+            <span v-if="group.unit" class="text-base text-muted font-normal">{{ group.unit }}</span>
+          </p>
+          <p class="text-xs text-muted mt-1">
+            Ultima lectura {{ formatDate(group.latest.time) }} · {{ group.items.length }} muestras
+          </p>
+        </UCard>
+      </section>
+
       <section>
         <UCard>
           <template #header>
@@ -130,13 +210,23 @@ const formatDate = (value: string) =>
               :key="stat.id"
               class="rounded-lg border border-accented p-3 flex flex-wrap items-center justify-between gap-2"
             >
-              <div class="flex items-center gap-2">
-                <UBadge :color="statColor(stat.type)" variant="subtle">
-                  {{ stat.type }}
+              <div class="flex items-center gap-2 flex-wrap">
+                <UBadge :color="statColor(stat.stat_type.name)" variant="subtle">
+                  {{ stat.stat_type.name }}
+                </UBadge>
+                <UBadge color="neutral" variant="outline" size="sm">
+                  {{ stat.stat_type.data_type.name }}
                 </UBadge>
                 <p class="font-medium">
-                  {{ stat.quantity }}
+                  {{ formatValue(stat) }}
                 </p>
+                <span
+                  v-if="stat.snapshot_id"
+                  class="text-xs text-muted font-mono"
+                  :title="stat.snapshot_id"
+                >
+                  snap {{ stat.snapshot_id.slice(0, 8) }}
+                </span>
               </div>
               <p class="text-xs text-muted">
                 {{ formatDate(stat.time) }}

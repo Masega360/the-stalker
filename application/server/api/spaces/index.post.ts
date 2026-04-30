@@ -1,4 +1,5 @@
 import { prisma } from "../../utils/db";
+import { requireUser } from "../../utils/auth";
 
 type CreateSpaceBody = {
   name?: string
@@ -6,6 +7,7 @@ type CreateSpaceBody = {
 };
 
 export default defineEventHandler(async (event) => {
+  const user = requireUser(event);
   const body = await readBody<CreateSpaceBody>(event);
   const name = body.name?.trim();
   const zoneId = body.zoneId?.trim();
@@ -14,7 +16,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "space name and zoneId are required" });
   }
 
-  const zone = await prisma.zone.findUnique({ where: { id: zoneId } });
+  const zone = await prisma.zone.findFirst({
+    where: {
+      id: zoneId,
+      users: { some: { user_id: user.id } }
+    },
+    select: { id: true }
+  });
+
   if (!zone) {
     throw createError({ statusCode: 404, statusMessage: "zone not found" });
   }
@@ -22,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const space = await prisma.room.create({
     data: {
       name,
-      zone_id: zoneId
+      zone_id: zone.id
     }
   });
 
