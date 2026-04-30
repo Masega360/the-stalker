@@ -4,7 +4,7 @@ import botocore.config
 import cv2
 import os
 
-MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5MB límite de Rekognition
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 _local = threading.local()
 
@@ -35,28 +35,33 @@ def handle(image):
     try:
         client = _get_client()
 
-        faces_response = client.detect_faces(
+        # 1. Contar personas (funciona de espaldas también)
+        resp_labels = client.detect_labels(
+            Image={'Bytes': image_bytes},
+            MaxLabels=20,
+            MinConfidence=60
+        )
+        total_personas = 0
+        for label in resp_labels['Labels']:
+            if label['Name'] == 'Person':
+                instances = label.get('Instances', [])
+                if instances:
+                    total_personas = len(instances)
+
+        # 2. Detectar caras con todos los atributos
+        resp_faces = client.detect_faces(
             Image={'Bytes': image_bytes},
             Attributes=['ALL']
         )
 
-        labels_response = client.detect_labels(
-            Image={'Bytes': image_bytes},
-            MaxLabels=10,
-            MinConfidence=80
-        )
+        # Usar el mayor entre personas por labels y caras detectadas
+        total_personas = max(total_personas, len(resp_faces['FaceDetails']))
 
-        total_persons = 0
-        for label in labels_response.get('Labels', []):
-            if label['Name'] == 'Person':
-                total_persons = len(label.get('Instances', []))
-                break
-
-        print(f"[REKOGNITION] {total_persons} personas detectadas, {len(faces_response['FaceDetails'])} caras")
+        print(f"[REKOGNITION] {total_personas} personas detectadas, {len(resp_faces['FaceDetails'])} caras")
 
         return {
-            'FaceDetails': faces_response['FaceDetails'],
-            'TotalPersons': total_persons
+            'FaceDetails': resp_faces['FaceDetails'],
+            'TotalPersons': total_personas
         }
 
     except Exception as e:

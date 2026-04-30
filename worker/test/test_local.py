@@ -5,18 +5,19 @@ Uso: py test_local.py <ruta_imagen>
 """
 import sys
 import os
+import json
 import cv2
 from dotenv import load_dotenv
 
-# .env está en la misma carpeta que este script (worker/)
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+# .env y módulos están en worker/ (un nivel arriba)
+worker_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+env_path = os.path.join(worker_dir, ".env")
 load_dotenv(env_path, override=True)
 
-# Debug: verificar que las variables se cargaron
 key = os.getenv("AWS_ACCESS_KEY_ID", "NO CARGÓ")
-token = os.getenv("AWS_SESSION_TOKEN", "NO CARGÓ")
 print(f"[DEBUG] KEY: {key[:15]}...")
-print(f"[DEBUG] TOKEN: {token[:20]}...")
+
+sys.path.insert(0, os.path.abspath(worker_dir))
 
 from rekognition_handler import handle
 from stats.provider import provide
@@ -42,8 +43,7 @@ def main():
         print("[ERROR] Rekognition no devolvió respuesta")
         sys.exit(1)
 
-    print(f"\n[RESULTADO] Personas detectadas (incl. espaldas): {response['TotalPersons']}")
-    print(f"[RESULTADO] Caras detectadas: {len(response['FaceDetails'])}")
+    print(f"\n[RESULTADO] Personas: {response['TotalPersons']}, Caras: {len(response['FaceDetails'])}")
 
     stats = provide(response, device_id="test-device-01")
 
