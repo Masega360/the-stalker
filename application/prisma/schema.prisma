@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//
+// ENUMS
+//
+
+enum ROLE {
+  OWNER
+  ADMIN
+  USER
+}
+
+enum STAT_TYPE {
+  PEOPLE
+  GENRE
+  AGE
+}
+
+enum DEVICES {
+  SENSOR
+  ACTUATOR
+}
+
+//
+// MODELS
+//
+
+model User {
+  id        String       @id @default(uuid())
+  username  String       @unique
+  p_hash    String
+  role      ROLE
+
+  zones     UserInZone[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Zone {
+  id     String       @id @default(uuid())
+  name   String
+
+  users  UserInZone[]
+  rooms  Room[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model UserInZone {
+  user_id   String
+  zone_id   String
+
+  user User @relation(fields: [user_id], references: [id])
+  zone Zone @relation(fields: [zone_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@id([user_id, zone_id]) // PK compuesta
+}
+
+model Room {
+  id      String  @id @default(uuid())
+  name    String
+  zone_id String
+
+  zone    Zone    @relation(fields: [zone_id], references: [id])
+  devices Device[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Device {
+  id      String  @id @default(uuid())
+  ip      String
+  status  Boolean
+  type    DEVICES
+
+  room_id String
+  room    Room    @relation(fields: [room_id], references: [id])
+
+  stats   Stats[]
+  logs    Log[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Stats {
+  id        String     @id @default(uuid())
+  quantity  Int
+  type      STAT_TYPE
+  time      DateTime
+
+  device_id String
+  device    Device     @relation(fields: [device_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  time      DateTime
+  body      String
+  code      Int
+
+  device_id String
+  device    Device   @relation(fields: [device_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
