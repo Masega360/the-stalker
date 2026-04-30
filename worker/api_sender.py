@@ -20,6 +20,28 @@ def send(stats: list[dict]):
     for stat in stats:
         _post(stat, headers)
 
+def register_device(device_id: str, device_type: str):
+    """Notifica al back el registro de un nuevo dispositivo."""
+    _setup()
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": _API_KEY
+    }
+    payload = {"device_id": device_id, "type": device_type}
+    try:
+        response = requests.post(
+            f"{_BASE_URL}/api/internal/devices/register",
+            json=payload,
+            headers=headers,
+            timeout=5
+        )
+        if response.status_code in (200, 201):
+            print(f"[SENDER] Dispositivo {device_id} ({device_type}) registrado OK")
+        else:
+            print(f"[SENDER] Error registrando {device_id}: {response.status_code}")
+    except Exception as e:
+        print(f"[SENDER] Error registrando dispositivo: {e}")
+
 def _post(stat: dict, headers: dict, retries: int = 3):
     for attempt in range(retries):
         try:
