@@ -4,7 +4,6 @@ venv/
 env/
 
 # Variables de entorno (credenciales)
-.env
 worker/.env
 
 # Python
