@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def start(on_message_callback):
+def start(on_message_callback = None):
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             print(f"[MQTT] Conectado al broker")
@@ -15,7 +15,7 @@ def start(on_message_callback):
 
     def on_message(client, userdata, msg):
         print(f"[MQTT] Mensaje recibido en {msg.topic}")
-        on_message_callback(msg.payload)
+        #on_message_callback(msg.payload)
 
     def on_disconnect(client, userdata, rc):
         if rc != 0:
@@ -32,3 +32,6 @@ def start(on_message_callback):
     )
 
     client.loop_forever()
+
+
+start()
