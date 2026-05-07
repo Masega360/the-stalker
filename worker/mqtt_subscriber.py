@@ -15,13 +15,11 @@ def start(on_image_callback=None, on_register_callback=None):
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             print(f"[MQTT] Conectado al broker")
-            # Cámaras
-            client.subscribe(os.getenv("MQTT_TOPIC"))
-            print(f"[MQTT] Suscripto a {os.getenv('MQTT_TOPIC')}")
-            # Registro
+            client.subscribe("+/camera/frame")
+            client.subscribe("+/camera/meta")
             client.subscribe("register/cam")
             client.subscribe("register/actor")
-            print(f"[MQTT] Suscripto a register/cam y register/actor")
+            print(f"[MQTT] Suscripto a +/camera/frame, +/camera/meta, register/cam, register/actor")
         else:
             print(f"[MQTT] Error de conexión, código {rc}")
 
@@ -42,10 +40,12 @@ def start(on_image_callback=None, on_register_callback=None):
             if on_register_callback:
                 on_register_callback(device_id, "actor")
 
-        elif on_image_callback:
-            # Extraer device_id del topic ej: {id}/sensors/cam
-            parts = topic.split("/")
-            device_id = parts[0] if len(parts) > 1 else "unknown"
+        elif topic.endswith("/camera/meta"):
+            device_id = topic.split("/")[0]
+            print(f"[MQTT] Meta de {device_id}: {payload.decode('utf-8', errors='ignore')}")
+
+        elif topic.endswith("/camera/frame") and on_image_callback:
+            device_id = topic.split("/")[0]
             on_image_callback(payload, device_id)
 
     def on_disconnect(client, userdata, rc):
