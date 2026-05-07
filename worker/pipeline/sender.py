@@ -1,6 +1,6 @@
 import requests
 import os
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 _BASE_URL = None
 _API_KEY = None
@@ -34,6 +34,7 @@ def register_device(device_id: str, device_type: str) -> Result:
         return Err(f"device {device_id} registration error: {e}")
 
 def _post(stat: dict, retries: int = 3) -> Result:
+    last_err = Err(f"{stat['stat_type']} failed after {retries} retries")
     for attempt in range(retries):
         try:
             response = requests.post(

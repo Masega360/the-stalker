@@ -3,7 +3,7 @@ import json
 import boto3
 import botocore.config
 import cv2
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 _local = threading.local()
 

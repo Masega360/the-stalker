@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import base64
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 def format_image(payload: bytes) -> Result:
     image = _decode(payload)

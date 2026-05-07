@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import os
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 _last_frame = None
 

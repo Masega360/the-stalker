@@ -1,5 +1,4 @@
-from result import Ok, Err
-from logger import log
+from core.logger import log
 
-def log_vision(backend: str, result: Ok | Err) -> None:
+def log_vision(backend: str, result) -> None:
     log(backend.upper(), result)

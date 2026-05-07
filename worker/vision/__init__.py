@@ -1,5 +1,5 @@
 import os
-from result import Ok, Err
+from core.result import Ok, Err
 from vision.logger import log_vision
 
 _BACKEND = os.getenv("VISION_BACKEND", "rekognition")

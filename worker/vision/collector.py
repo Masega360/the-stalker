@@ -4,7 +4,7 @@ import botocore.config
 import cv2
 import os
 from datetime import datetime, timezone
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 _local = threading.local()
 

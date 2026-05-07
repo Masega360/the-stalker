@@ -2,7 +2,7 @@ import threading
 import boto3
 import botocore.config
 import cv2
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 _local = threading.local()

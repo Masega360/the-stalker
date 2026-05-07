@@ -1,6 +1,6 @@
 import os
 from ultralytics import YOLO
-from result import Ok, Err, Result
+from core.result import Ok, Err, Result
 
 _model = None
 

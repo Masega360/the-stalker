@@ -1,4 +1,4 @@
-from result import Ok, Err
+from core.result import Ok, Err
 
 def log(tag: str, result: Ok | Err) -> None:
     if result.is_ok():

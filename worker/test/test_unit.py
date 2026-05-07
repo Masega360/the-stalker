@@ -23,7 +23,7 @@ from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from result import Ok, Err
+from core.result import Ok, Err
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -202,7 +202,7 @@ class TestProvider:
 # image_formatter.py  [PURE — returns Result]
 # ---------------------------------------------------------------------------
 
-from image_formatter import format_image
+from pipeline.formatter import format_image
 
 def _make_jpeg_bytes():
     img = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -236,9 +236,9 @@ class TestImageFormatter:
 
 class TestPreprocessor:
     def _fresh(self):
-        import preprocessor
-        importlib.reload(preprocessor)
-        return preprocessor
+        from pipeline import preprocessor as pp
+        importlib.reload(pp)
+        return pp
 
     def _sharp_bright(self):
         img = np.ones((100, 100, 3), dtype=np.uint8) * 150
@@ -320,7 +320,7 @@ class TestRekognitionHandler:
 # api_sender.py  [IMPURE — returns Result]
 # ---------------------------------------------------------------------------
 
-from api_sender import send, register_device
+from pipeline.sender import send, register_device
 
 class TestApiSender:
     def test_send_returns_ok_per_stat(self):  # IMPURE
