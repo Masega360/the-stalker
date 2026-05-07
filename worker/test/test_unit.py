@@ -286,33 +286,50 @@ class TestPreprocessor:
 # vision/rekognition.py  [IMPURE — calls AWS]
 # ---------------------------------------------------------------------------
 
-from vision.rekognition import handle
+from vision.models.rekognition import call as rek_call
+from vision.parsers.rekognition import parse as rek_parse
+from vision.result import VisionResult
 
 class TestRekognitionHandler:
     def test_returns_none_on_aws_error(self):  # IMPURE
-        with patch("vision.rekognition._get_client") as mock_client:
+        with patch("vision.models.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.side_effect = Exception("AWS error")
-            assert handle(np.zeros((100, 100, 3), dtype=np.uint8)) is None
+            assert rek_call(np.zeros((100, 100, 3), dtype=np.uint8)) is None
 
     def test_rejects_oversized_image(self):  # IMPURE
         big = np.random.randint(0, 255, (2000, 2000, 3), dtype=np.uint8)
-        with patch("vision.rekognition._get_client") as mock_client:
+        with patch("vision.models.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.return_value = {"Labels": []}
             mock_client.return_value.detect_faces.return_value = {"FaceDetails": []}
-            result = handle(big)
+            result = rek_call(big)
             assert result is None or isinstance(result, dict)
 
     def test_returns_expected_shape(self):  # IMPURE
-        with patch("vision.rekognition._get_client") as mock_client:
+        with patch("vision.models.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.return_value = {
                 "Labels": [{"Name": "Person", "Instances": [{}, {}]}]
             }
             mock_client.return_value.detect_faces.return_value = {"FaceDetails": [_face()]}
-            result = handle(np.zeros((100, 100, 3), dtype=np.uint8))
-            assert result is not None
-            assert "FaceDetails" in result
-            assert "TotalPersons" in result
-            assert result["TotalPersons"] == 2
+            raw = rek_call(np.zeros((100, 100, 3), dtype=np.uint8))
+            assert raw is not None
+
+    def test_parser_extracts_persons_and_faces(self):  # PURE
+        raw = {
+            "labels": {"Labels": [{"Name": "Person", "Instances": [{}, {}, {}]}]},
+            "faces": {"FaceDetails": [_face()]}
+        }
+        result = rek_parse(raw)
+        assert isinstance(result, VisionResult)
+        assert result.total_persons == 3
+        assert len(result.face_details) == 1
+
+    def test_parser_uses_face_count_when_higher(self):  # PURE
+        raw = {
+            "labels": {"Labels": [{"Name": "Person", "Instances": [{}]}]},
+            "faces": {"FaceDetails": [_face(), _face(), _face()]}
+        }
+        result = rek_parse(raw)
+        assert result.total_persons == 3
 
 # ---------------------------------------------------------------------------
 # api_sender.py  [IMPURE — makes HTTP requests]
