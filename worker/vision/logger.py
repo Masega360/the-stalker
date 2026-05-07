@@ -1,9 +1,5 @@
-from vision.result import VisionResult
+from result import Ok, Err
+from logger import log
 
-def log_result(backend: str, result: VisionResult | None) -> None:
-    if result is None:
-        print(f"[{backend.upper()}] No result")
-        return
-    faces = len(result.face_details)
-    print(f"[{backend.upper()}] {result.total_persons} persons detected" +
-          (f", {faces} faces" if faces else ""))
+def log_vision(backend: str, result: Ok | Err) -> None:
+    log(backend.upper(), result)

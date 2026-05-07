@@ -4,6 +4,7 @@ import botocore.config
 import cv2
 import os
 from datetime import datetime, timezone
+from result import Ok, Err, Result
 
 _local = threading.local()
 
@@ -11,47 +12,32 @@ def _get_client():
     if not hasattr(_local, 'client'):
         _local.client = boto3.client(
             's3',
-            config=botocore.config.Config(
-                retries={'max_attempts': 3, 'mode': 'adaptive'}
-            )
+            config=botocore.config.Config(retries={'max_attempts': 3, 'mode': 'adaptive'})
         )
     return _local.client
 
-def collect(image, device_id: str) -> bool:
-    """Uploads a JPEG frame to S3 for dataset collection."""
+def collect(image, device_id: str) -> Result:
     bucket = os.getenv("S3_DATASET_BUCKET")
-    prefix = os.getenv("S3_DATASET_PREFIX", "frames/").rstrip("/")
-
     if not bucket:
-        print("[COLLECTOR] S3_DATASET_BUCKET no configurado")
-        return False
+        return Err("S3_DATASET_BUCKET not configured")
 
     image_bytes = _to_bytes(image)
     if image_bytes is None:
-        print("[COLLECTOR] No se pudo convertir la imagen")
-        return False
+        return Err("could not encode image")
 
+    prefix = os.getenv("S3_DATASET_PREFIX", "frames").rstrip("/")
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
     key = f"{prefix}/{device_id}/{ts}.jpg"
 
     try:
-        _get_client().put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=image_bytes,
-            ContentType="image/jpeg"
-        )
-        print(f"[COLLECTOR] Frame guardado: s3://{bucket}/{key}")
-        return True
+        _get_client().put_object(Bucket=bucket, Key=key, Body=image_bytes, ContentType="image/jpeg")
+        return Ok(f"s3://{bucket}/{key}")
     except Exception as e:
-        print(f"[COLLECTOR] Error subiendo a S3: {e}")
-        return False
+        return Err(f"s3 upload error: {e}")
 
 def _to_bytes(image) -> bytes | None:
     try:
         success, buffer = cv2.imencode('.jpg', image)
-        if not success:
-            return None
-        return buffer.tobytes()
+        return buffer.tobytes() if success else None
     except Exception:
         return None

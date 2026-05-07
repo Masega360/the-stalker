@@ -3,6 +3,7 @@ import json
 import boto3
 import botocore.config
 import cv2
+from result import Ok, Err, Result
 
 _local = threading.local()
 
@@ -14,21 +15,19 @@ def _get_client():
         )
     return _local.client
 
-def call(image, endpoint_name: str) -> dict | None:
-    """Returns raw endpoint JSON response or None on error."""
+def call(image, endpoint_name: str) -> Result:
     image_bytes = _to_bytes(image)
     if image_bytes is None:
-        return None
+        return Err("could not encode image")
     try:
         response = _get_client().invoke_endpoint(
             EndpointName=endpoint_name,
             ContentType="image/jpeg",
             Body=image_bytes
         )
-        return json.loads(response['Body'].read())
+        return Ok(json.loads(response['Body'].read()))
     except Exception as e:
-        print(f"[SAGEMAKER] Error: {e}")
-        return None
+        return Err(f"sagemaker error: {e}")
 
 def _to_bytes(image) -> bytes | None:
     try:

@@ -1,5 +1,6 @@
 import requests
 import os
+from result import Ok, Err, Result
 
 _BASE_URL = None
 _API_KEY = None
@@ -10,55 +11,42 @@ def _setup():
         _BASE_URL = os.getenv("NUXT_API_URL")
         _API_KEY = os.getenv("INTERNAL_API_KEY")
 
-def send(stats: list[dict]):
+def _headers() -> dict:
     _setup()
-    headers = {
-        "Content-Type": "application/json",
-        "x-api-key": _API_KEY
-    }
+    return {"Content-Type": "application/json", "x-api-key": _API_KEY}
 
-    for stat in stats:
-        _post(stat, headers)
+def send(stats: list[dict]) -> list[Result]:
+    return [_post(stat) for stat in stats]
 
-def register_device(device_id: str, device_type: str):
-    """Notifica al back el registro de un nuevo dispositivo."""
+def register_device(device_id: str, device_type: str) -> Result:
     _setup()
-    headers = {
-        "Content-Type": "application/json",
-        "x-api-key": _API_KEY
-    }
-    payload = {"device_id": device_id, "type": device_type}
     try:
         response = requests.post(
             f"{_BASE_URL}/api/internal/devices/register",
-            json=payload,
-            headers=headers,
+            json={"device_id": device_id, "type": device_type},
+            headers=_headers(),
             timeout=5
         )
         if response.status_code in (200, 201):
-            print(f"[SENDER] Dispositivo {device_id} ({device_type}) registrado OK")
-        else:
-            print(f"[SENDER] Error registrando {device_id}: {response.status_code}")
+            return Ok(f"device {device_id} ({device_type}) registered")
+        return Err(f"device {device_id} registration failed: {response.status_code}")
     except Exception as e:
-        print(f"[SENDER] Error registrando dispositivo: {e}")
+        return Err(f"device {device_id} registration error: {e}")
 
-def _post(stat: dict, headers: dict, retries: int = 3):
+def _post(stat: dict, retries: int = 3) -> Result:
     for attempt in range(retries):
         try:
             response = requests.post(
                 f"{_BASE_URL}/api/internal/stats",
                 json=stat,
-                headers=headers,
+                headers=_headers(),
                 timeout=5
             )
             if response.status_code == 201:
-                print(f"[SENDER] {stat['stat_type']} enviado OK")
-                return
-            else:
-                print(f"[SENDER] Error {response.status_code} en {stat['stat_type']}, intento {attempt + 1}")
+                return Ok(f"{stat['stat_type']} sent")
+            last_err = Err(f"{stat['stat_type']} failed with {response.status_code} (attempt {attempt + 1})")
         except requests.exceptions.Timeout:
-            print(f"[SENDER] Timeout en {stat['stat_type']}, intento {attempt + 1}")
+            last_err = Err(f"{stat['stat_type']} timeout (attempt {attempt + 1})")
         except requests.exceptions.ConnectionError:
-            print(f"[SENDER] Sin conexión, intento {attempt + 1}")
-
-    print(f"[SENDER] Falló {stat['stat_type']} después de {retries} intentos, descartando")
+            last_err = Err(f"{stat['stat_type']} no connection (attempt {attempt + 1})")
+    return last_err

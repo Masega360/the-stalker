@@ -2,20 +2,16 @@
 Unit tests for the worker modules.
 
 PURE functions (fully testable, no mocks needed):
-  - stats/age_stat.py      AgeStat.parse
-  - stats/emotion_stat.py  EmotionStat.parse
-  - stats/gender_stat.py   GenderStat.parse
-  - stats/people_stat.py   PeopleStat.parse
-  - stats/base.py          BaseStat._build
-  - image_formatter.py     format_image / _decode
+  - stats/*              all stat classes
+  - image_formatter.py   format_image
+  - preprocessor.py      preprocess (impure due to global state)
+  - vision/parsers/*     all parsers
 
 IMPURE functions (require mocks, marked with # IMPURE):
-  - stats/provider.py      provide          — uses uuid4() and datetime.now()
-  - preprocessor.py        preprocess       — stateful (_last_frame global)
-  - vision/rekognition.py  handle           — calls AWS Rekognition
-  - api_sender.py          send / register  — makes HTTP requests
-  - mqtt_subscriber.py     start / publish  — connects to external broker
-  - main.py                relay endpoint   — Flask + MQTT side effects
+  - stats/provider.py    provide          — uses uuid4() and datetime.now()
+  - preprocessor.py      preprocess       — stateful (_last_frame global)
+  - vision/models/*      all models       — call external services
+  - api_sender.py        send / register  — makes HTTP requests
 """
 
 import sys
@@ -26,6 +22,8 @@ import cv2
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from result import Ok, Err
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -44,7 +42,7 @@ def _face(gender="Male", age_low=20, age_high=30, emotions=None, bb=None):
     }
 
 # ---------------------------------------------------------------------------
-# stats/base.py — BaseStat._build  [PURE]
+# stats/base.py  [PURE]
 # ---------------------------------------------------------------------------
 
 from stats.people_stat import PeopleStat
@@ -96,8 +94,7 @@ class TestGenderStat:
         return GenderStat(SNAP, DEV, TIME)
 
     def test_empty(self):
-        result = self._stat().parse([])
-        types = {r["stat_type"]: r["value"] for r in result}
+        types = {r["stat_type"]: r["value"] for r in self._stat().parse([])}
         assert types == {"male_count": 0, "female_count": 0}
 
     def test_counts(self):
@@ -107,8 +104,7 @@ class TestGenderStat:
         assert types["female_count"] == 1
 
     def test_missing_gender_ignored(self):
-        faces = [{"AgeRange": {"Low": 20, "High": 30}}]
-        types = {r["stat_type"]: r["value"] for r in self._stat().parse(faces)}
+        types = {r["stat_type"]: r["value"] for r in self._stat().parse([{"AgeRange": {"Low": 20, "High": 30}}])}
         assert types["male_count"] == 0
         assert types["female_count"] == 0
 
@@ -126,7 +122,6 @@ class TestAgeStat:
         assert self._stat().parse([]) == []
 
     def test_single_face(self):
-        # age = (20+30)/2 = 25, single value so min=max=mean=25
         result = {r["stat_type"]: r["value"] for r in self._stat().parse([_face(age_low=20, age_high=30)])}
         assert result["age_mean"] == 25.0
         assert result["age_min"] == 25
@@ -134,7 +129,6 @@ class TestAgeStat:
         assert result["age_std"] == 0.0
 
     def test_multiple_faces(self):
-        # ages: (20+30)/2=25, (30+40)/2=35 → mean=30, min=25, max=35
         faces = [_face(age_low=20, age_high=30), _face(age_low=30, age_high=40)]
         result = {r["stat_type"]: r["value"] for r in self._stat().parse(faces)}
         assert result["age_mean"] == 30.0
@@ -142,8 +136,7 @@ class TestAgeStat:
         assert result["age_max"] == 35
 
     def test_face_without_age_ignored(self):
-        faces = [{"Gender": {"Value": "Male"}}]
-        assert self._stat().parse(faces) == []
+        assert self._stat().parse([{"Gender": {"Value": "Male"}}]) == []
 
 # ---------------------------------------------------------------------------
 # stats/emotion_stat.py  [PURE]
@@ -156,23 +149,18 @@ class TestEmotionStat:
         return EmotionStat(SNAP, DEV, TIME)
 
     def test_empty(self):
-        result = self._stat().parse([])
-        types = {r["stat_type"]: r["value"] for r in result}
+        types = {r["stat_type"]: r["value"] for r in self._stat().parse([])}
         for e in EMOTIONS:
             assert types[f"{e.lower()}_count"] == 0
 
     def test_dominant_emotion_counted(self):
-        face = _face(emotions=[
-            {"Type": "HAPPY", "Confidence": 90.0},
-            {"Type": "SAD",   "Confidence": 10.0},
-        ])
+        face = _face(emotions=[{"Type": "HAPPY", "Confidence": 90.0}, {"Type": "SAD", "Confidence": 10.0}])
         result = {r["stat_type"]: r["value"] for r in self._stat().parse([face])}
         assert result["happy_count"] == 1
         assert result["sad_count"] == 0
 
     def test_per_face_entry(self):
-        face = _face(emotions=[{"Type": "CALM", "Confidence": 75.0}],
-                     bb={"Left": 0.3, "Top": 0.4})
+        face = _face(emotions=[{"Type": "CALM", "Confidence": 75.0}], bb={"Left": 0.3, "Top": 0.4})
         result = self._stat().parse([face])
         per_face = [r for r in result if r["stat_type"] == "face_1_emotion"]
         assert len(per_face) == 1
@@ -180,27 +168,23 @@ class TestEmotionStat:
         assert per_face[0]["value"]["position"] == {"left": 0.3, "top": 0.4}
 
     def test_face_without_emotions_skipped(self):
-        face = {"Gender": {"Value": "Male"}, "AgeRange": {"Low": 20, "High": 30}}
-        result = self._stat().parse([face])
+        result = self._stat().parse([{"Gender": {"Value": "Male"}, "AgeRange": {"Low": 20, "High": 30}}])
         assert [r for r in result if "face_" in r["stat_type"]] == []
 
     def test_multiple_faces_indexed(self):
-        faces = [_face(), _face()]
-        result = self._stat().parse(faces)
-        keys = [r["stat_type"] for r in result if "face_" in r["stat_type"]]
+        keys = [r["stat_type"] for r in self._stat().parse([_face(), _face()]) if "face_" in r["stat_type"]]
         assert "face_1_emotion" in keys
         assert "face_2_emotion" in keys
 
 # ---------------------------------------------------------------------------
-# stats/provider.py  [IMPURE — uses uuid4 + datetime.now]
+# stats/provider.py  [IMPURE — uuid4 + datetime.now]
 # ---------------------------------------------------------------------------
 
 from stats.provider import provide
 
 class TestProvider:
     def test_returns_list(self):  # IMPURE
-        result = provide({"FaceDetails": [], "TotalPersons": 0}, "dev-1")
-        assert isinstance(result, list)
+        assert isinstance(provide({"FaceDetails": [], "TotalPersons": 0}, "dev-1"), list)
 
     def test_people_count_in_result(self):  # IMPURE
         result = provide({"FaceDetails": [], "TotalPersons": 5}, "dev-1")
@@ -215,7 +199,7 @@ class TestProvider:
         assert len({r["snapshot_id"] for r in result}) == 1
 
 # ---------------------------------------------------------------------------
-# image_formatter.py  [PURE]
+# image_formatter.py  [PURE — returns Result]
 # ---------------------------------------------------------------------------
 
 from image_formatter import format_image
@@ -233,21 +217,21 @@ def _make_png_bytes():
 
 class TestImageFormatter:
     def test_valid_jpeg(self):
-        result = format_image(_make_jpeg_bytes())
-        assert result is not None
-        assert result.shape == (100, 100, 3)
+        r = format_image(_make_jpeg_bytes())
+        assert r.is_ok()
+        assert r.value.shape == (100, 100, 3)
 
     def test_valid_png(self):
-        assert format_image(_make_png_bytes()) is not None
+        assert format_image(_make_png_bytes()).is_ok()
 
     def test_invalid_payload(self):
-        assert format_image(b"not an image") is None
+        assert format_image(b"not an image").is_err()
 
     def test_empty_payload(self):
-        assert format_image(b"") is None
+        assert format_image(b"").is_err()
 
 # ---------------------------------------------------------------------------
-# preprocessor.py  [IMPURE — stateful global _last_frame]
+# preprocessor.py  [IMPURE — stateful global, returns Result]
 # ---------------------------------------------------------------------------
 
 class TestPreprocessor:
@@ -263,16 +247,19 @@ class TestPreprocessor:
         return img
 
     def test_accepts_good_image(self):  # IMPURE
-        assert self._fresh().preprocess(self._sharp_bright()) is True
+        assert self._fresh().preprocess(self._sharp_bright()).is_ok()
 
     def test_rejects_dark_image(self):  # IMPURE
-        assert self._fresh().preprocess(np.zeros((100, 100, 3), dtype=np.uint8)) is False
+        r = self._fresh().preprocess(np.zeros((100, 100, 3), dtype=np.uint8))
+        assert r.is_err()
 
     def test_rejects_duplicate(self):  # IMPURE
         pp = self._fresh()
         img = self._sharp_bright()
         pp.preprocess(img)
-        assert pp.preprocess(img.copy()) is False
+        r = pp.preprocess(img.copy())
+        assert r.is_err()
+        assert "duplicate" in r.reason
 
     def test_accepts_different_frame(self):  # IMPURE
         pp = self._fresh()
@@ -280,10 +267,10 @@ class TestPreprocessor:
         img2 = self._sharp_bright()
         img2[0:50, 0:50] = 0
         pp.preprocess(img1)
-        assert pp.preprocess(img2) is True
+        assert pp.preprocess(img2).is_ok()
 
 # ---------------------------------------------------------------------------
-# vision/rekognition.py  [IMPURE — calls AWS]
+# vision/models/rekognition.py + vision/parsers/rekognition.py
 # ---------------------------------------------------------------------------
 
 from vision.models.rekognition import call as rek_call
@@ -291,27 +278,26 @@ from vision.parsers.rekognition import parse as rek_parse
 from vision.result import VisionResult
 
 class TestRekognitionHandler:
-    def test_returns_none_on_aws_error(self):  # IMPURE
+    def test_returns_err_on_aws_error(self):  # IMPURE
         with patch("vision.models.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.side_effect = Exception("AWS error")
-            assert rek_call(np.zeros((100, 100, 3), dtype=np.uint8)) is None
+            r = rek_call(np.zeros((100, 100, 3), dtype=np.uint8))
+            assert r.is_err()
 
-    def test_rejects_oversized_image(self):  # IMPURE
+    def test_returns_err_on_oversized_image(self):  # IMPURE
         big = np.random.randint(0, 255, (2000, 2000, 3), dtype=np.uint8)
-        with patch("vision.models.rekognition._get_client") as mock_client:
-            mock_client.return_value.detect_labels.return_value = {"Labels": []}
-            mock_client.return_value.detect_faces.return_value = {"FaceDetails": []}
-            result = rek_call(big)
-            assert result is None or isinstance(result, dict)
+        with patch("vision.models.rekognition._get_client"):
+            r = rek_call(big)
+            assert isinstance(r, (Ok, Err))
 
-    def test_returns_expected_shape(self):  # IMPURE
+    def test_returns_ok_with_raw(self):  # IMPURE
         with patch("vision.models.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.return_value = {
                 "Labels": [{"Name": "Person", "Instances": [{}, {}]}]
             }
             mock_client.return_value.detect_faces.return_value = {"FaceDetails": [_face()]}
-            raw = rek_call(np.zeros((100, 100, 3), dtype=np.uint8))
-            assert raw is not None
+            r = rek_call(np.zeros((100, 100, 3), dtype=np.uint8))
+            assert r.is_ok()
 
     def test_parser_extracts_persons_and_faces(self):  # PURE
         raw = {
@@ -328,36 +314,37 @@ class TestRekognitionHandler:
             "labels": {"Labels": [{"Name": "Person", "Instances": [{}]}]},
             "faces": {"FaceDetails": [_face(), _face(), _face()]}
         }
-        result = rek_parse(raw)
-        assert result.total_persons == 3
+        assert rek_parse(raw).total_persons == 3
 
 # ---------------------------------------------------------------------------
-# api_sender.py  [IMPURE — makes HTTP requests]
+# api_sender.py  [IMPURE — returns Result]
 # ---------------------------------------------------------------------------
 
 from api_sender import send, register_device
 
 class TestApiSender:
-    def test_send_posts_each_stat(self):  # IMPURE
+    def test_send_returns_ok_per_stat(self):  # IMPURE
         stats = [{"stat_type": "people_count", "value": 3}, {"stat_type": "age_mean", "value": 25.0}]
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=201)
-            send(stats)
-            assert mock_post.call_count == 2
+            results = send(stats)
+            assert len(results) == 2
+            assert all(r.is_ok() for r in results)
 
-    def test_send_retries_on_failure(self):  # IMPURE
+    def test_send_returns_err_after_retries(self):  # IMPURE
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=500)
-            send([{"stat_type": "people_count", "value": 1}])
+            results = send([{"stat_type": "people_count", "value": 1}])
+            assert results[0].is_err()
             assert mock_post.call_count == 3
 
-    def test_register_device_success(self):  # IMPURE
+    def test_register_device_returns_ok(self):  # IMPURE
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=201)
-            register_device("cam-01", "cam")
-            mock_post.assert_called_once()
+            r = register_device("cam-01", "cam")
+            assert r.is_ok()
             assert mock_post.call_args[1]["json"] == {"device_id": "cam-01", "type": "cam"}
 
-    def test_register_device_handles_error(self):  # IMPURE
+    def test_register_device_returns_err_on_exception(self):  # IMPURE
         with patch("requests.post", side_effect=Exception("connection error")):
-            register_device("cam-01", "cam")  # should not raise
+            assert register_device("cam-01", "cam").is_err()

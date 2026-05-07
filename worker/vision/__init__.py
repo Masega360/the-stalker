@@ -1,21 +1,22 @@
 import os
-from vision.logger import log_result
+from result import Ok, Err
+from vision.logger import log_vision
 
 _BACKEND = os.getenv("VISION_BACKEND", "rekognition")
 
 def get_handler():
-    """Returns a callable handle(image, device_id) -> dict | None based on VISION_BACKEND."""
+    """Returns callable handle(image, device_id) -> dict | None"""
 
     if _BACKEND == "yolo":
         from vision.models import yolo as yolo_model
         from vision.parsers import yolo as yolo_parser
         def handle(image, device_id):
-            raw = yolo_model.call(image)
-            if raw is None:
+            result = yolo_model.call(image)
+            log_vision("yolo", result)
+            if result.is_err():
                 return None
-            result = yolo_parser.parse(raw)
-            log_result("yolo", result)
-            return result.to_pipeline_dict()
+            parsed = yolo_parser.parse(result.value)
+            return parsed.to_pipeline_dict()
         return handle
 
     if _BACKEND == "sagemaker":
@@ -23,18 +24,19 @@ def get_handler():
         from vision.parsers import sagemaker as sm_parser
         endpoint = os.getenv("SAGEMAKER_ENDPOINT_NAME")
         def handle(image, device_id):
-            raw = sm_model.call(image, endpoint)
-            if raw is None:
+            result = sm_model.call(image, endpoint)
+            log_vision("sagemaker", result)
+            if result.is_err():
                 return None
-            result = sm_parser.parse(raw)
-            log_result("sagemaker", result)
-            return result.to_pipeline_dict()
+            parsed = sm_parser.parse(result.value)
+            return parsed.to_pipeline_dict()
         return handle
 
     if _BACKEND == "collect":
         from vision.collector import collect
         def handle(image, device_id):
-            collect(image, device_id)
+            result = collect(image, device_id)
+            log_vision("collect", result)
             return None
         return handle
 
@@ -42,10 +44,10 @@ def get_handler():
     from vision.models import rekognition as rek_model
     from vision.parsers import rekognition as rek_parser
     def handle(image, device_id):
-        raw = rek_model.call(image)
-        if raw is None:
+        result = rek_model.call(image)
+        log_vision("rekognition", result)
+        if result.is_err():
             return None
-        result = rek_parser.parse(raw)
-        log_result("rekognition", result)
-        return result.to_pipeline_dict()
+        parsed = rek_parser.parse(result.value)
+        return parsed.to_pipeline_dict()
     return handle

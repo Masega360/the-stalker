@@ -7,6 +7,7 @@ from preprocessor import preprocess
 from stats.provider import provide
 from api_sender import send, register_device
 from vision import get_handler
+from logger import log
 
 app = Flask(__name__)
 _vision = get_handler()
@@ -14,23 +15,31 @@ _vision = get_handler()
 # --- MQTT callbacks ---
 
 def on_image(payload, device_id):
-    image = format_image(payload)
-    if image is None:
+    fmt = format_image(payload)
+    log("FORMATTER", fmt)
+    if fmt.is_err():
         return
 
-    if not preprocess(image):
+    pre = preprocess(fmt.value)
+    log("PREPROCESSOR", pre)
+    if pre.is_err():
         return
 
-    response = _vision(image, device_id)
+    response = _vision(fmt.value, device_id)
     if response is None:
         return
 
     stats = provide(response, device_id)
-    if stats:
-        send(stats)
+    if not stats:
+        return
+
+    results = send(stats)
+    for r in results:
+        log("SENDER", r)
 
 def on_register(device_id, device_type):
-    register_device(device_id, device_type)
+    result = register_device(device_id, device_type)
+    log("SENDER", result)
 
 # --- HTTP endpoint for Nuxt ---
 
@@ -46,7 +55,7 @@ def relay(device_id):
     success = publish_relay(device_id, state)
     if success:
         return jsonify({"ok": True, "device_id": device_id, "state": state}), 200
-    return jsonify({"error": "No se pudo publicar en MQTT"}), 500
+    return jsonify({"error": "could not publish to MQTT"}), 500
 
 # --- Entry point ---
 
@@ -59,5 +68,5 @@ if __name__ == "__main__":
     mqtt_thread.start()
 
     port = int(os.getenv("WORKER_PORT", 5000))
-    print(f"[WORKER] HTTP escuchando en puerto {port}")
+    print(f"[WORKER] HTTP listening on port {port}")
     app.run(host="0.0.0.0", port=port)

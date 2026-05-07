@@ -1,5 +1,6 @@
 import os
 from ultralytics import YOLO
+from result import Ok, Err, Result
 
 _model = None
 
@@ -9,11 +10,9 @@ def _get_model():
         _model = YOLO(os.getenv("YOLO_MODEL_PATH", "yolov8n.pt"))
     return _model
 
-def call(image) -> list | None:
-    """Returns list of ultralytics Boxes or None on error."""
+def call(image) -> Result:
     try:
         results = _get_model()(image, verbose=False)
-        return results[0].boxes
+        return Ok(results[0].boxes)
     except Exception as e:
-        print(f"[YOLO] Error: {e}")
-        return None
+        return Err(f"yolo error: {e}")
