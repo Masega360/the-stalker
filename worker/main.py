@@ -9,13 +9,16 @@ import os
 
 app = Flask(__name__)
 
-_VISION_BACKEND = os.getenv("VISION_BACKEND", "rekognition")  # "rekognition" | "sagemaker"
+_VISION_BACKEND = os.getenv("VISION_BACKEND", "rekognition")  # "rekognition" | "sagemaker" | "collect"
 
 if _VISION_BACKEND == "sagemaker":
     from sagemaker_handler import handle as _handle
     _SAGEMAKER_ENDPOINT = os.getenv("SAGEMAKER_ENDPOINT_NAME")
     def handle(image):
         return _handle(image, _SAGEMAKER_ENDPOINT)
+elif _VISION_BACKEND == "collect":
+    from collector import collect
+    handle = None  # No inference in collect mode
 else:
     from rekognition_handler import handle
 
@@ -27,6 +30,10 @@ def on_image(payload, device_id):
         return
 
     if not preprocess(image):
+        return
+
+    if _VISION_BACKEND == "collect":
+        collect(image, device_id)
         return
 
     response = handle(image)
