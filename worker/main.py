@@ -1,3 +1,4 @@
+import os
 import threading
 from flask import Flask, request, jsonify
 from mqtt_subscriber import start, publish_relay
@@ -5,24 +6,12 @@ from image_formatter import format_image
 from preprocessor import preprocess
 from stats.provider import provide
 from api_sender import send, register_device
-import os
+from vision import get_handler
 
 app = Flask(__name__)
+_vision = get_handler()
 
-_VISION_BACKEND = os.getenv("VISION_BACKEND", "rekognition")  # "rekognition" | "sagemaker" | "collect"
-
-if _VISION_BACKEND == "sagemaker":
-    from sagemaker_handler import handle as _handle
-    _SAGEMAKER_ENDPOINT = os.getenv("SAGEMAKER_ENDPOINT_NAME")
-    def handle(image):
-        return _handle(image, _SAGEMAKER_ENDPOINT)
-elif _VISION_BACKEND == "collect":
-    from collector import collect
-    handle = None  # No inference in collect mode
-else:
-    from rekognition_handler import handle
-
-# --- Callbacks MQTT ---
+# --- MQTT callbacks ---
 
 def on_image(payload, device_id):
     image = format_image(payload)
@@ -32,24 +21,18 @@ def on_image(payload, device_id):
     if not preprocess(image):
         return
 
-    if _VISION_BACKEND == "collect":
-        collect(image, device_id)
-        return
-
-    response = handle(image)
+    response = _vision(image, device_id)
     if response is None:
         return
 
     stats = provide(response, device_id)
-    if not stats:
-        return
-
-    send(stats)
+    if stats:
+        send(stats)
 
 def on_register(device_id, device_type):
     register_device(device_id, device_type)
 
-# --- Endpoint HTTP para Nuxt ---
+# --- HTTP endpoint for Nuxt ---
 
 @app.route("/relay/<device_id>", methods=["POST"])
 def relay(device_id):
@@ -58,7 +41,7 @@ def relay(device_id):
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.get_json()
-    state = data.get("state", False)  # true = encender, false = apagar
+    state = data.get("state", False)
 
     success = publish_relay(device_id, state)
     if success:
@@ -68,7 +51,6 @@ def relay(device_id):
 # --- Entry point ---
 
 if __name__ == "__main__":
-    # MQTT en hilo separado
     mqtt_thread = threading.Thread(
         target=start,
         kwargs={"on_image_callback": on_image, "on_register_callback": on_register},
@@ -76,7 +58,6 @@ if __name__ == "__main__":
     )
     mqtt_thread.start()
 
-    # HTTP server para recibir pedidos de Nuxt
     port = int(os.getenv("WORKER_PORT", 5000))
     print(f"[WORKER] HTTP escuchando en puerto {port}")
     app.run(host="0.0.0.0", port=port)

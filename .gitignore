@@ -16,6 +16,13 @@ dist/
 build/
 *.egg
 
+# Modelos YOLO
+*.pt
+*.onnx
+
+# Pytest
+.pytest_cache/
+
 # Imágenes de prueba
 worker/test/*.jpg
 worker/test/*.jpeg

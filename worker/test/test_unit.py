@@ -12,7 +12,7 @@ PURE functions (fully testable, no mocks needed):
 IMPURE functions (require mocks, marked with # IMPURE):
   - stats/provider.py      provide          — uses uuid4() and datetime.now()
   - preprocessor.py        preprocess       — stateful (_last_frame global)
-  - rekognition_handler.py handle           — calls AWS Rekognition
+  - vision/rekognition.py  handle           — calls AWS Rekognition
   - api_sender.py          send / register  — makes HTTP requests
   - mqtt_subscriber.py     start / publish  — connects to external broker
   - main.py                relay endpoint   — Flask + MQTT side effects
@@ -20,9 +20,9 @@ IMPURE functions (require mocks, marked with # IMPURE):
 
 import sys
 import os
+import importlib
 import numpy as np
 import cv2
-import pytest
 from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -83,7 +83,6 @@ class TestPeopleStat:
         assert self._stat(7).parse([])[0]["value"] == 7
 
     def test_ignores_faces_arg(self):
-        # total_persons comes from constructor, not faces list
         assert self._stat(3).parse([_face(), _face()])[0]["value"] == 3
 
 # ---------------------------------------------------------------------------
@@ -139,8 +138,8 @@ class TestAgeStat:
         faces = [_face(age_low=20, age_high=30), _face(age_low=30, age_high=40)]
         result = {r["stat_type"]: r["value"] for r in self._stat().parse(faces)}
         assert result["age_mean"] == 30.0
-        assert result["age_min"] == 25   # int(min([25.0, 35.0]))
-        assert result["age_max"] == 35   # int(max([25.0, 35.0]))
+        assert result["age_min"] == 25
+        assert result["age_max"] == 35
 
     def test_face_without_age_ignored(self):
         faces = [{"Gender": {"Value": "Male"}}]
@@ -183,8 +182,7 @@ class TestEmotionStat:
     def test_face_without_emotions_skipped(self):
         face = {"Gender": {"Value": "Male"}, "AgeRange": {"Low": 20, "High": 30}}
         result = self._stat().parse([face])
-        per_face = [r for r in result if "face_" in r["stat_type"]]
-        assert per_face == []
+        assert [r for r in result if "face_" in r["stat_type"]] == []
 
     def test_multiple_faces_indexed(self):
         faces = [_face(), _face()]
@@ -200,14 +198,13 @@ class TestEmotionStat:
 from stats.provider import provide
 
 class TestProvider:
-    def test_returns_list(self):  # IMPURE: uuid4, datetime.now
+    def test_returns_list(self):  # IMPURE
         result = provide({"FaceDetails": [], "TotalPersons": 0}, "dev-1")
         assert isinstance(result, list)
 
     def test_people_count_in_result(self):  # IMPURE
         result = provide({"FaceDetails": [], "TotalPersons": 5}, "dev-1")
-        types = [r["stat_type"] for r in result]
-        assert "people_count" in types
+        assert "people_count" in [r["stat_type"] for r in result]
 
     def test_all_stats_have_device_id(self):  # IMPURE
         result = provide({"FaceDetails": [_face()], "TotalPersons": 1}, "my-device")
@@ -215,8 +212,7 @@ class TestProvider:
 
     def test_snapshot_id_consistent_within_call(self):  # IMPURE
         result = provide({"FaceDetails": [_face()], "TotalPersons": 1}, "dev-1")
-        ids = {r["snapshot_id"] for r in result}
-        assert len(ids) == 1  # all stats share the same snapshot_id
+        assert len({r["snapshot_id"] for r in result}) == 1
 
 # ---------------------------------------------------------------------------
 # image_formatter.py  [PURE]
@@ -242,26 +238,20 @@ class TestImageFormatter:
         assert result.shape == (100, 100, 3)
 
     def test_valid_png(self):
-        result = format_image(_make_png_bytes())
-        assert result is not None
+        assert format_image(_make_png_bytes()) is not None
 
     def test_invalid_payload(self):
-        result = format_image(b"not an image")
-        assert result is None
+        assert format_image(b"not an image") is None
 
     def test_empty_payload(self):
-        result = format_image(b"")
-        assert result is None
+        assert format_image(b"") is None
 
 # ---------------------------------------------------------------------------
 # preprocessor.py  [IMPURE — stateful global _last_frame]
 # ---------------------------------------------------------------------------
 
-import importlib
-
 class TestPreprocessor:
     def _fresh(self):
-        # Reload to reset global _last_frame state
         import preprocessor
         importlib.reload(preprocessor)
         return preprocessor
@@ -272,16 +262,13 @@ class TestPreprocessor:
         cv2.line(img, (0, 0), (100, 100), (0, 0, 0), 1)
         return img
 
-    def test_accepts_good_image(self):  # IMPURE: modifies global state
-        pp = self._fresh()
-        assert pp.preprocess(self._sharp_bright()) is True
+    def test_accepts_good_image(self):  # IMPURE
+        assert self._fresh().preprocess(self._sharp_bright()) is True
 
     def test_rejects_dark_image(self):  # IMPURE
-        pp = self._fresh()
-        dark = np.zeros((100, 100, 3), dtype=np.uint8)
-        assert pp.preprocess(dark) is False
+        assert self._fresh().preprocess(np.zeros((100, 100, 3), dtype=np.uint8)) is False
 
-    def test_rejects_duplicate(self):  # IMPURE: depends on previous call
+    def test_rejects_duplicate(self):  # IMPURE
         pp = self._fresh()
         img = self._sharp_bright()
         pp.preprocess(img)
@@ -296,39 +283,32 @@ class TestPreprocessor:
         assert pp.preprocess(img2) is True
 
 # ---------------------------------------------------------------------------
-# rekognition_handler.py  [IMPURE — calls AWS]
+# vision/rekognition.py  [IMPURE — calls AWS]
 # ---------------------------------------------------------------------------
 
-from rekognition_handler import handle
+from vision.rekognition import handle
 
 class TestRekognitionHandler:
-    def test_returns_none_on_aws_error(self):  # IMPURE: mocks AWS
-        with patch("rekognition_handler._get_client") as mock_client:
+    def test_returns_none_on_aws_error(self):  # IMPURE
+        with patch("vision.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.side_effect = Exception("AWS error")
-            img = np.zeros((100, 100, 3), dtype=np.uint8)
-            assert handle(img) is None
+            assert handle(np.zeros((100, 100, 3), dtype=np.uint8)) is None
 
-    def test_rejects_oversized_image(self):  # IMPURE: checks size limit
-        # 5MB+ image
-        big = np.zeros((2000, 2000, 3), dtype=np.uint8)
-        # Force large encoding by making it non-compressible
-        big[:] = np.random.randint(0, 255, big.shape, dtype=np.uint8)
-        # May or may not exceed limit depending on compression — just verify no crash
-        with patch("rekognition_handler._get_client") as mock_client:
+    def test_rejects_oversized_image(self):  # IMPURE
+        big = np.random.randint(0, 255, (2000, 2000, 3), dtype=np.uint8)
+        with patch("vision.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.return_value = {"Labels": []}
             mock_client.return_value.detect_faces.return_value = {"FaceDetails": []}
             result = handle(big)
-            # Either None (too big) or dict (within limit after compression)
             assert result is None or isinstance(result, dict)
 
-    def test_returns_expected_shape(self):  # IMPURE: mocks AWS
-        with patch("rekognition_handler._get_client") as mock_client:
+    def test_returns_expected_shape(self):  # IMPURE
+        with patch("vision.rekognition._get_client") as mock_client:
             mock_client.return_value.detect_labels.return_value = {
                 "Labels": [{"Name": "Person", "Instances": [{}, {}]}]
             }
             mock_client.return_value.detect_faces.return_value = {"FaceDetails": [_face()]}
-            img = np.zeros((100, 100, 3), dtype=np.uint8)
-            result = handle(img)
+            result = handle(np.zeros((100, 100, 3), dtype=np.uint8))
             assert result is not None
             assert "FaceDetails" in result
             assert "TotalPersons" in result
@@ -341,31 +321,25 @@ class TestRekognitionHandler:
 from api_sender import send, register_device
 
 class TestApiSender:
-    def test_send_posts_each_stat(self):  # IMPURE: mocks requests
-        stats = [
-            {"stat_type": "people_count", "value": 3},
-            {"stat_type": "age_mean", "value": 25.0},
-        ]
+    def test_send_posts_each_stat(self):  # IMPURE
+        stats = [{"stat_type": "people_count", "value": 3}, {"stat_type": "age_mean", "value": 25.0}]
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=201)
             send(stats)
             assert mock_post.call_count == 2
 
     def test_send_retries_on_failure(self):  # IMPURE
-        stats = [{"stat_type": "people_count", "value": 1}]
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=500)
-            send(stats)
-            assert mock_post.call_count == 3  # 3 retries
+            send([{"stat_type": "people_count", "value": 1}])
+            assert mock_post.call_count == 3
 
     def test_register_device_success(self):  # IMPURE
         with patch("requests.post") as mock_post:
             mock_post.return_value = MagicMock(status_code=201)
             register_device("cam-01", "cam")
             mock_post.assert_called_once()
-            payload = mock_post.call_args[1]["json"]
-            assert payload["device_id"] == "cam-01"
-            assert payload["type"] == "cam"
+            assert mock_post.call_args[1]["json"] == {"device_id": "cam-01", "type": "cam"}
 
     def test_register_device_handles_error(self):  # IMPURE
         with patch("requests.post", side_effect=Exception("connection error")):
