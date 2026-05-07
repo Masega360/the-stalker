@@ -13,5 +13,9 @@ def get_handler():
         from vision.collector import collect
         return lambda image, device_id: (collect(image, device_id), None)[1]
 
+    if _BACKEND == "yolo":
+        from vision.yolo import handle
+        return lambda image, device_id: handle(image)
+
     from vision.rekognition import handle
     return lambda image, device_id: handle(image)
