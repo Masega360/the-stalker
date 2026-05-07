@@ -3,12 +3,21 @@ from flask import Flask, request, jsonify
 from mqtt_subscriber import start, publish_relay
 from image_formatter import format_image
 from preprocessor import preprocess
-from rekognition_handler import handle
 from stats.provider import provide
 from api_sender import send, register_device
 import os
 
 app = Flask(__name__)
+
+_VISION_BACKEND = os.getenv("VISION_BACKEND", "rekognition")  # "rekognition" | "sagemaker"
+
+if _VISION_BACKEND == "sagemaker":
+    from sagemaker_handler import handle as _handle
+    _SAGEMAKER_ENDPOINT = os.getenv("SAGEMAKER_ENDPOINT_NAME")
+    def handle(image):
+        return _handle(image, _SAGEMAKER_ENDPOINT)
+else:
+    from rekognition_handler import handle
 
 # --- Callbacks MQTT ---
 
