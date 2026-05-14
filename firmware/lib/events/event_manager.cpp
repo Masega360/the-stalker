@@ -37,6 +37,11 @@ void EventManager::emit(EventType eventType, const char* actionName, const char*
     emit(event);
 }
 
+void EventManager::emit(EventType eventType, void* data, size_t dataLen) {
+    Event event(eventType, nullptr, nullptr, data, dataLen);
+    emit(event);
+}
+
 void EventManager::clear() {
     listeners.clear();
     Serial.println("[EventManager] Todos los listeners han sido limpiados");

@@ -21,9 +21,13 @@ static constexpr int RELAY_PIN = 27;  // GPIO27 para el relé
 static constexpr int WIFI_TASK_STACK_SIZE = 4096;
 static constexpr int MQTT_TASK_STACK_SIZE = 4096;
 static constexpr int SENSOR_TASK_STACK_SIZE = 2048;
+static constexpr int CAMERA_TASK_STACK_SIZE = 8192;
 
 static constexpr int WIFI_TASK_PRIORITY = 1;
 static constexpr int MQTT_TASK_PRIORITY = 1;
 static constexpr int SENSOR_TASK_PRIORITY = 2;
+static constexpr int CAMERA_TASK_PRIORITY = 2;
+
+static constexpr int CAMERA_FRAME_INTERVAL_MS = 500; // 2 FPS por defecto
 
 #endif // CONFIG_H

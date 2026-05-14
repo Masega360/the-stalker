@@ -58,6 +58,14 @@ public:
     void emit(EventType eventType, const char* actionName, const char* payload = nullptr);
 
     /**
+     * @brief Dispara un evento con datos binarios
+     * @param eventType Tipo de evento
+     * @param data Puntero a datos binarios
+     * @param dataLen Longitud de los datos
+     */
+    void emit(EventType eventType, void* data, size_t dataLen);
+
+    /**
      * @brief Limpia todos los listeners registrados
      */
     void clear();

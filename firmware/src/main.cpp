@@ -6,13 +6,21 @@
 
 // Includes de configuración y módulos
 #include "config/config.h"
-#include <hc_sr501.h>
 #include <wifi_task.h>
 #include <mqtt_task.h>
-#include <sensor_task.h>
 #include <event_manager.h>
-#include <relay.h>
 #include <Led.h>
+
+#ifdef DEVICE_ROLE_ACTOR
+#include <hc_sr501.h>
+#include <sensor_task.h>
+#include <relay.h>
+#endif
+
+#ifdef DEVICE_ROLE_CAMERA
+#include <camera_task.h>
+#endif
+
 #ifdef LOGGER_API_ENABLED
 #include "logger_api.h"
 Logger logger = new ApiLogger();
@@ -24,41 +32,47 @@ WiFiClient espClient;
 // Handles de tareas RTOS
 TaskHandle_t wifiTaskHandle = NULL;
 TaskHandle_t mqttTaskHandle = NULL;
+
+#ifdef DEVICE_ROLE_ACTOR
 TaskHandle_t sensorTaskHandle = NULL;
-
-// Instancia del sensor PIR
 sensors::PIRSensor pirSensor(PIR_SENSOR_PIN);
-
-// Instancia del relé
 relay::Relay relayDevice(RELAY_PIN);
+#endif
+
+#ifdef DEVICE_ROLE_CAMERA
+TaskHandle_t cameraTaskHandle = NULL;
+#endif
 
 void setup() {
     Serial.begin(115200);
-    delay(2000);  // Esperar a que el monitor serie se inicie
+    delay(2000);
     
-    Serial.println("\n\n========== Electronica Info ==========");
-    Serial.println("Iniciando sistema...");
-    Serial.println("======================================\n");
-    Led::LedBuiltIn::setColor(Led::Colors::BLUE, 2000);  // Indicar inicio con LED azul
+    Serial.println("\n\n========== ESP32 Role-Based Firmware ==========");
+#ifdef DEVICE_ROLE_ACTOR
+    Serial.println("Role: ACTOR (Relay & Sensors)");
+#elif defined(DEVICE_ROLE_CAMERA)
+    Serial.println("Role: CAMERA (MQTT Streamer)");
+#else
+    Serial.println("Role: UNDEFINED (Check build flags)");
+#endif
+    Serial.println("==============================================\n");
+
+    Led::LedBuiltIn::setColor(Led::Colors::BLUE, 2000);
     
-    // Inicializar el sensor
+#ifdef DEVICE_ROLE_ACTOR
     pirSensor.init();
-    
-    // Inicializar el relé
     // relayDevice.init();
     
-    // Registrar listener para eventos del relé
     events::EventManager::getInstance().subscribe(
         events::EventType::RELAY_TOGGLE,
         [](const events::Event& event) {
-            Serial.print("[Main] Evento RELAY_TOGGLE recibido - Acción: ");
-            Serial.println(event.actionName);
+            Serial.print("[Main] Evento RELAY_TOGGLE recibido");
             Led::LedBuiltIn::setColor(Led::Colors::GREEN, 500);
             //relayDevice.toggle();
-            //relayDevice.printStatus();
         }
     );
-    
+#endif
+
     events::EventManager::getInstance().subscribe(
         events::EventType::WIFI_CONNECTED,
         [](const events::Event& event) {
@@ -67,15 +81,22 @@ void setup() {
         }
     );
     
-    // Crear tareas RTOS
+    // Crear tareas comunes
     tasks::createWiFiTask(WIFI_TASK_PRIORITY, wifiTaskHandle);
     tasks::createMQTTTask(espClient, MQTT_TASK_PRIORITY, mqttTaskHandle);
-    //tasks::createSensorTask(pirSensor, SENSOR_TASK_PRIORITY, sensorTaskHandle);
+    
+#ifdef DEVICE_ROLE_ACTOR
+    // tasks::createSensorTask(pirSensor, SENSOR_TASK_PRIORITY, sensorTaskHandle);
+#endif
+
+#ifdef DEVICE_ROLE_CAMERA
+    tasks::createCameraTask(CAMERA_TASK_PRIORITY, cameraTaskHandle);
+#endif
     
     Serial.println("[Main] Tareas creadas exitosamente");
     Serial.println("[Main] Sistema listo. Esperando eventos...\n");
 }
 
 void loop() {
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
 }

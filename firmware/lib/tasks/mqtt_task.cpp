@@ -2,6 +2,9 @@
 #include "wifi_task.h"
 #include "../config/config.h"
 #include "../events/event_manager.h"
+#ifdef DEVICE_ROLE_CAMERA
+#include "esp_camera.h"
+#endif
 
 namespace tasks {
 
@@ -27,10 +30,11 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     Serial.println(payloadStr);
     
     // Parsear topic para obtener el nombre de la acción
-    // Formato esperado: /actions/{actionName}
+    // Formato esperado: {clientId}/actions/{actionName}
     String topicStr(topic);
-    if (topicStr.startsWith("/actions/")) {
-        String actionName = topicStr.substring(9);  // Remover "/actions/"
+    int actionsIndex = topicStr.indexOf("/actions/");
+    if (actionsIndex != -1) {
+        String actionName = topicStr.substring(actionsIndex + 9);
         
         // Disparar evento según la acción
         if (actionName == "relay") {
@@ -39,8 +43,13 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length) {
                 actionName.c_str(),
                 payloadStr
             );
+        } else if (actionName == "take_photo") {
+            events::EventManager::getInstance().emit(
+                events::EventType::TAKE_PHOTO,
+                actionName.c_str(),
+                payloadStr
+            );
         }
-        // Aquí puedes agregar más acciones en el futuro
     }
 }
 
@@ -55,8 +64,32 @@ static void mqttTaskFunction(void *pvParameters) {
     }
     
     mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+    mqttClient.setBufferSize(MQTT_MAX_PACKET_SIZE); // Asegurar buffer para fotos
     mqttClient.setCallback(onMqttMessage);
     Serial.println("[MQTT] Servidor configurado");
+
+    // Suscribirse a eventos de fotos capturadas
+    events::EventManager::getInstance().subscribe(
+        events::EventType::PHOTO_CAPTURED,
+        [](const events::Event& event) {
+            if (mqttClient.connected() && event.data != nullptr) {
+                String photoTopic = String("/") + MQTT_CLIENT_ID + "/camera/photo";
+                
+#ifdef DEVICE_ROLE_CAMERA
+                camera_fb_t* fb = (camera_fb_t*)event.data;
+                Serial.printf("[MQTT] Publicando foto en %s (%d bytes)\n", photoTopic.c_str(), fb->len);
+                
+                bool success = mqttClient.publish(photoTopic.c_str(), fb->buf, fb->len);
+                if (!success) {
+                    Serial.println("[MQTT] ✗ Fallo al publicar foto (¿Payload demasiado grande?)");
+                }
+                
+                // LIBERAR el buffer de la cámara
+                esp_camera_fb_return(fb);
+#endif
+            }
+        }
+    );
     
     while (true) {
         if (!mqttClient.connected()) {

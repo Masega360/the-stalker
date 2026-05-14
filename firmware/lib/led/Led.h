@@ -4,7 +4,13 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
+#ifdef DEVICE_ROLE_ACTOR
 #define LED_BUILTIN_PIN 48
+#define USE_NEOPIXEL
+#elif defined(DEVICE_ROLE_CAMERA)
+#define LED_BUILTIN_PIN 33 // LED rojo incorporado en la mayoría de ESP32-CAM (activo en BAJO)
+#endif
+
 #define LED_POWER 50
 
 namespace Led {
@@ -23,10 +29,21 @@ namespace Led {
     namespace LedBuiltIn
     {
         static void setColor(uint8_t r, uint8_t g, uint8_t b) {
+#ifdef USE_NEOPIXEL
             Adafruit_NeoPixel strip(1, LED_BUILTIN_PIN, NEO_GRB + NEO_KHZ800);
             strip.begin();
             strip.setPixelColor(0, strip.Color(r, g, b));
             strip.show();
+#else
+            // Para ESP32-CAM, el LED suele ser GPIO 33 (rojo) y es Activo Bajo
+            // Solo podemos controlar encendido/apagado (usamos R como indicador)
+            pinMode(LED_BUILTIN_PIN, OUTPUT);
+            if (r > 0 || g > 0 || b > 0) {
+                digitalWrite(LED_BUILTIN_PIN, LOW); // ON
+            } else {
+                digitalWrite(LED_BUILTIN_PIN, HIGH); // OFF
+            }
+#endif
         }
         
         static void setColor(const uint8_t color[3]) {

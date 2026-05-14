@@ -18,6 +18,8 @@ enum class EventType {
     MOTION_STOPPED,    // Movimiento parado
     WIFI_CONNECTED,    // WiFi conectado
     WIFI_DISCONNECTED, // WiFi desconectado
+    TAKE_PHOTO,        // Disparar una foto
+    PHOTO_CAPTURED,    // Foto capturada exitosamente
     CUSTOM             // Evento personalizado
 };
 
@@ -28,11 +30,13 @@ enum class EventType {
 struct Event {
     EventType type;              // Tipo de evento
     const char* actionName;      // Nombre de la acción (ej: "toggle", "on", "off")
-    const char* payload;         // Datos adicionales del evento
+    const char* payload;         // Datos adicionales del evento (texto)
+    void* data;                  // Puntero a datos binarios (opcional)
+    size_t dataLen;              // Longitud de los datos binarios
     unsigned long timestamp;     // Timestamp del evento
     
-    Event(EventType type, const char* actionName = nullptr, const char* payload = nullptr)
-        : type(type), actionName(actionName), payload(payload), timestamp(millis()) {}
+    Event(EventType type, const char* actionName = nullptr, const char* payload = nullptr, void* data = nullptr, size_t dataLen = 0)
+        : type(type), actionName(actionName), payload(payload), data(data), dataLen(dataLen), timestamp(millis()) {}
 };
 
 // Tipo de callback para manejar eventos
