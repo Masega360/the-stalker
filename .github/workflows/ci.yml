@@ -11,6 +11,10 @@ jobs:
         os: [ubuntu-latest]
         node: [22]
 
+    defaults:
+      run:
+        working-directory: application
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -23,6 +27,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
+          cache-dependency-path: application/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install
