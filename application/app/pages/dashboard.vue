@@ -212,8 +212,16 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
           Vista consolidada de zonas, espacios y dispositivos en tiempo real.
         </p>
       </div>
-      <UBadge color="primary" variant="subtle" size="lg" class="w-fit">
-        <UIcon name="i-lucide-clock-3" class="size-4 mr-2" />
+      <UBadge
+        color="primary"
+        variant="subtle"
+        size="lg"
+        class="w-fit"
+      >
+        <UIcon
+          name="i-lucide-clock-3"
+          class="size-4 mr-2"
+        />
         Actualizado {{ lastUpdate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) }}
       </UBadge>
     </section>
@@ -225,7 +233,10 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
             <p class="text-sm text-muted">
               Zonas
             </p>
-            <UIcon name="i-lucide-map-pinned" class="size-4 text-primary" />
+            <UIcon
+              name="i-lucide-map-pinned"
+              class="size-4 text-primary"
+            />
           </div>
         </template>
         <p class="text-3xl font-semibold">
@@ -242,7 +253,10 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
             <p class="text-sm text-muted">
               Salud del sistema
             </p>
-            <UIcon name="i-lucide-activity" class="size-4 text-primary" />
+            <UIcon
+              name="i-lucide-activity"
+              class="size-4 text-primary"
+            />
           </div>
         </template>
         <p class="text-3xl font-semibold">
@@ -259,7 +273,10 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
             <p class="text-sm text-muted">
               Cobertura
             </p>
-            <UIcon name="i-lucide-map" class="size-4 text-primary" />
+            <UIcon
+              name="i-lucide-map"
+              class="size-4 text-primary"
+            />
           </div>
         </template>
         <p class="text-3xl font-semibold">
@@ -276,7 +293,10 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
             <p class="text-sm text-muted">
               Dispositivos
             </p>
-            <UIcon name="i-lucide-cpu" class="size-4 text-primary" />
+            <UIcon
+              name="i-lucide-cpu"
+              class="size-4 text-primary"
+            />
           </div>
         </template>
         <p class="text-3xl font-semibold">
@@ -296,22 +316,41 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
               Estado por zona
             </h2>
             <div class="flex items-center gap-2">
-              <UBadge color="neutral" variant="outline">
+              <UBadge
+                color="neutral"
+                variant="outline"
+              >
                 {{ zones.length }} zonas
               </UBadge>
-              <UButton size="sm" color="primary" @click="createZoneOpen = true">
-                <UIcon name="i-lucide-plus" class="size-4 mr-1" />
+              <UButton
+                size="sm"
+                color="primary"
+                @click="createZoneOpen = true"
+              >
+                <UIcon
+                  name="i-lucide-plus"
+                  class="size-4 mr-1"
+                />
                 Crear zona
               </UButton>
             </div>
           </div>
         </template>
 
-        <div v-if="loadingZones" class="py-8 flex justify-center">
-          <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-primary" />
+        <div
+          v-if="loadingZones"
+          class="py-8 flex justify-center"
+        >
+          <UIcon
+            name="i-lucide-loader-2"
+            class="size-6 animate-spin text-primary"
+          />
         </div>
 
-        <div v-else class="space-y-3">
+        <div
+          v-else
+          class="space-y-3"
+        >
           <div
             v-for="zone in zones"
             :key="zone.id"
@@ -324,10 +363,16 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
                 </p>
               </div>
               <div class="flex flex-wrap gap-2">
-                <UBadge color="neutral" variant="outline">
+                <UBadge
+                  color="neutral"
+                  variant="outline"
+                >
                   Espacios {{ zone.rooms.length }}
                 </UBadge>
-                <UBadge color="primary" variant="subtle">
+                <UBadge
+                  color="primary"
+                  variant="subtle"
+                >
                   Devices {{ zone.rooms.reduce((acc, room) => acc + room.devices.length, 0) }}
                 </UBadge>
               </div>
@@ -345,35 +390,66 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
               Stats recientes
             </h2>
             <div class="flex items-center gap-2">
-              <UBadge color="neutral" variant="outline">
+              <UBadge
+                color="neutral"
+                variant="outline"
+              >
                 {{ recentStats.length }} registros
               </UBadge>
-              <UButton size="xs" variant="ghost" color="neutral" :loading="loadingStats" @click="loadStats">
-                <UIcon name="i-lucide-refresh-cw" class="size-3.5" />
+              <UButton
+                size="xs"
+                variant="ghost"
+                color="neutral"
+                :loading="loadingStats"
+                @click="loadStats"
+              >
+                <UIcon
+                  name="i-lucide-refresh-cw"
+                  class="size-3.5"
+                />
               </UButton>
             </div>
           </div>
         </template>
 
-        <div v-if="loadingStats" class="py-8 flex justify-center">
-          <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-primary" />
+        <div
+          v-if="loadingStats"
+          class="py-8 flex justify-center"
+        >
+          <UIcon
+            name="i-lucide-loader-2"
+            class="size-6 animate-spin text-primary"
+          />
         </div>
 
-        <div v-else-if="recentStats.length === 0" class="py-6 text-sm text-muted text-center">
+        <div
+          v-else-if="recentStats.length === 0"
+          class="py-6 text-sm text-muted text-center"
+        >
           Todavia no llegaron stats. Enviá un POST a <code class="font-mono text-xs">/api/internal/stats</code> para registrar.
         </div>
 
-        <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+        <div
+          v-else
+          class="space-y-2 max-h-96 overflow-y-auto"
+        >
           <div
             v-for="stat in recentStats"
             :key="stat.id"
             class="rounded-lg border border-accented p-3 flex flex-wrap items-center justify-between gap-2"
           >
             <div class="flex items-center gap-2 flex-wrap">
-              <UBadge :color="statColor(stat.stat_type.name)" variant="subtle">
+              <UBadge
+                :color="statColor(stat.stat_type.name)"
+                variant="subtle"
+              >
                 {{ stat.stat_type.name }}
               </UBadge>
-              <UBadge color="neutral" variant="outline" size="sm">
+              <UBadge
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
                 {{ stat.stat_type.data_type.name }}
               </UBadge>
               <span class="font-medium">{{ formatStatValue(stat) }}</span>
@@ -407,17 +483,29 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
             <h2 class="text-base font-semibold">
               Diagrama de zonas y espacios
             </h2>
-            <UBadge color="primary" variant="outline">
+            <UBadge
+              color="primary"
+              variant="outline"
+            >
               Estructura: Zona > Espacio > Device
             </UBadge>
           </div>
         </template>
 
-        <div v-if="loadingZones" class="py-8 flex justify-center">
-          <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-primary" />
+        <div
+          v-if="loadingZones"
+          class="py-8 flex justify-center"
+        >
+          <UIcon
+            name="i-lucide-loader-2"
+            class="size-6 animate-spin text-primary"
+          />
         </div>
 
-        <div v-else class="space-y-4">
+        <div
+          v-else
+          class="space-y-4"
+        >
           <div
             v-for="zone in zones"
             :key="zone.id"
@@ -425,13 +513,24 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
           >
             <div class="flex items-center justify-between gap-2 mb-3">
               <div class="flex items-center gap-2">
-                <UIcon name="i-lucide-map-pinned" class="size-4 text-cyan-500" />
+                <UIcon
+                  name="i-lucide-map-pinned"
+                  class="size-4 text-cyan-500"
+                />
                 <p class="font-semibold">
                   {{ zone.name }}
                 </p>
               </div>
-              <UButton size="xs" variant="soft" color="primary" @click="openCreateSpace(zone.id)">
-                <UIcon name="i-lucide-plus" class="size-3.5 mr-1" />
+              <UButton
+                size="xs"
+                variant="soft"
+                color="primary"
+                @click="openCreateSpace(zone.id)"
+              >
+                <UIcon
+                  name="i-lucide-plus"
+                  class="size-3.5 mr-1"
+                />
                 Crear espacio
               </UButton>
             </div>
@@ -443,12 +542,23 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
                 class="pl-4"
               >
                 <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-door-open" class="size-4 text-indigo-500" />
+                  <UIcon
+                    name="i-lucide-door-open"
+                    class="size-4 text-indigo-500"
+                  />
                   <p class="text-sm font-medium">
                     {{ room.name }}
                   </p>
-                  <UButton size="xs" variant="outline" color="neutral" @click="openCreateDevice(room.id)">
-                    <UIcon name="i-lucide-plus" class="size-3 mr-1" />
+                  <UButton
+                    size="xs"
+                    variant="outline"
+                    color="neutral"
+                    @click="openCreateDevice(room.id)"
+                  >
+                    <UIcon
+                      name="i-lucide-plus"
+                      class="size-3 mr-1"
+                    />
                     Device
                   </UButton>
                 </div>
@@ -463,7 +573,10 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
                       variant="subtle"
                       class="gap-1 hover:opacity-80 cursor-pointer"
                     >
-                      <UIcon :name="device.type === 'SENSOR' ? 'i-lucide-scan-search' : 'i-lucide-radio' " class="size-3.5" />
+                      <UIcon
+                        :name="device.type === 'SENSOR' ? 'i-lucide-scan-search' : 'i-lucide-radio' "
+                        class="size-3.5"
+                      />
                       {{ deviceLabel(device) }}
                     </UBadge>
                   </NuxtLink>
@@ -475,51 +588,85 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
       </UCard>
     </section>
 
-    <UModal v-model:open="createZoneOpen" title="Crear zona">
+    <UModal
+      v-model:open="createZoneOpen"
+      title="Crear zona"
+    >
       <template #body>
         <div class="space-y-3">
           <UFormField label="Nombre de la zona">
-            <UInput v-model="zoneNameInput" placeholder="Ej: Hall Central" />
+            <UInput
+              v-model="zoneNameInput"
+              placeholder="Ej: Hall Central"
+            />
           </UFormField>
         </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
-          <UButton variant="ghost" color="neutral" @click="createZoneOpen = false">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="createZoneOpen = false"
+          >
             Cancelar
           </UButton>
-          <UButton :loading="creatingZone" color="primary" @click="createZone">
+          <UButton
+            :loading="creatingZone"
+            color="primary"
+            @click="createZone"
+          >
             Guardar zona
           </UButton>
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="createSpaceOpen" title="Crear espacio">
+    <UModal
+      v-model:open="createSpaceOpen"
+      title="Crear espacio"
+    >
       <template #body>
         <div class="space-y-3">
           <UFormField label="Nombre del espacio">
-            <UInput v-model="spaceNameInput" placeholder="Ej: Camino Principal" />
+            <UInput
+              v-model="spaceNameInput"
+              placeholder="Ej: Camino Principal"
+            />
           </UFormField>
         </div>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
-          <UButton variant="ghost" color="neutral" @click="createSpaceOpen = false">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="createSpaceOpen = false"
+          >
             Cancelar
           </UButton>
-          <UButton :loading="creatingSpace" color="primary" @click="createSpace">
+          <UButton
+            :loading="creatingSpace"
+            color="primary"
+            @click="createSpace"
+          >
             Guardar espacio
           </UButton>
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="createDeviceOpen" title="Crear dispositivo">
+    <UModal
+      v-model:open="createDeviceOpen"
+      title="Crear dispositivo"
+    >
       <template #body>
         <div class="space-y-3">
           <UFormField label="ID del dispositivo">
-            <UInput v-model="deviceKeyInput" placeholder="Ej: sensor-porton-norte" />
+            <UInput
+              v-model="deviceKeyInput"
+              placeholder="Ej: sensor-porton-norte"
+            />
           </UFormField>
 
           <UFormField label="Tipo">
@@ -542,10 +689,18 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
       </template>
       <template #footer>
         <div class="flex justify-end gap-2 w-full">
-          <UButton variant="ghost" color="neutral" @click="createDeviceOpen = false">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            @click="createDeviceOpen = false"
+          >
             Cancelar
           </UButton>
-          <UButton :loading="creatingDevice" color="primary" @click="createDevice">
+          <UButton
+            :loading="creatingDevice"
+            color="primary"
+            @click="createDevice"
+          >
             Guardar dispositivo
           </UButton>
         </div>

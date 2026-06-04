@@ -1,35 +1,35 @@
-import { prisma } from "../../utils/db";
-import { requireUser } from "../../utils/auth";
+import { prisma } from '../../utils/db'
+import { requireUser } from '../../utils/auth'
 
-type DeviceKind = "SENSOR" | "ACTUATOR";
+type DeviceKind = 'SENSOR' | 'ACTUATOR'
 
 type CreateDeviceBody = {
   ip?: string
   status?: boolean
   type?: DeviceKind
   roomId?: string
-};
+}
 
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event);
-  const body = await readBody<CreateDeviceBody>(event);
-  const ip = body.ip?.trim();
-  const roomId = body.roomId?.trim();
-  const status = body.status;
-  const type = body.type;
+  const user = requireUser(event)
+  const body = await readBody<CreateDeviceBody>(event)
+  const ip = body.ip?.trim()
+  const roomId = body.roomId?.trim()
+  const status = body.status
+  const type = body.type
 
-  if (!ip || !roomId || typeof status !== "boolean" || !type) {
+  if (!ip || !roomId || typeof status !== 'boolean' || !type) {
     throw createError({
       statusCode: 400,
-      statusMessage: "ip, status, type and roomId are required"
-    });
+      statusMessage: 'ip, status, type and roomId are required'
+    })
   }
 
-  if (type !== "SENSOR" && type !== "ACTUATOR") {
+  if (type !== 'SENSOR' && type !== 'ACTUATOR') {
     throw createError({
       statusCode: 400,
-      statusMessage: "invalid device type"
-    });
+      statusMessage: 'invalid device type'
+    })
   }
 
   const room = await prisma.room.findFirst({
@@ -40,10 +40,10 @@ export default defineEventHandler(async (event) => {
       }
     },
     select: { id: true }
-  });
+  })
 
   if (!room) {
-    throw createError({ statusCode: 404, statusMessage: "space not found" });
+    throw createError({ statusCode: 404, statusMessage: 'space not found' })
   }
 
   const device = await prisma.device.create({
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       type,
       room_id: room.id
     }
-  });
+  })
 
-  return { device };
-});
+  return { device }
+})

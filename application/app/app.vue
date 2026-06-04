@@ -34,14 +34,20 @@ useSeoMeta({
   <UApp>
     <UHeader>
       <template #left>
-        <NuxtLink to="/" class="inline-flex items-center">
+        <NuxtLink
+          to="/"
+          class="inline-flex items-center"
+        >
           <AppLogo />
         </NuxtLink>
       </template>
 
       <template #right>
         <div class="flex items-center gap-4 mr-2">
-          <div v-if="auth.loading.value" class="text-sm text-gray-500">
+          <div
+            v-if="auth.loading.value"
+            class="text-sm text-gray-500"
+          >
             Cargando...
           </div>
           <template v-else-if="auth.user.value">

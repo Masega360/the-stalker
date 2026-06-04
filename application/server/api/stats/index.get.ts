@@ -1,15 +1,15 @@
-import { prisma } from "../../utils/db";
-import { requireUser } from "../../utils/auth";
+import { prisma } from '../../utils/db'
+import { requireUser } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event);
-  const query = getQuery(event);
-  const limitRaw = Number(query.limit ?? 50);
-  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
+  const user = requireUser(event)
+  const query = getQuery(event)
+  const limitRaw = Number(query.limit ?? 50)
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50
 
   const stats = await prisma.stats.findMany({
     take: limit,
-    orderBy: { time: "desc" },
+    orderBy: { time: 'desc' },
     where: {
       device: {
         is: {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     }
-  });
+  })
 
-  return { stats };
-});
+  return { stats }
+})

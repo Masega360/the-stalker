@@ -120,68 +120,115 @@ const groupedStats = computed<StatGroup[]>(() => {
     <div class="flex items-center justify-between gap-3">
       <div>
         <p class="text-sm text-muted">
-          <NuxtLink to="/dashboard" class="hover:underline">Dashboard</NuxtLink> / Device
+          <NuxtLink
+            to="/dashboard"
+            class="hover:underline"
+          >Dashboard</NuxtLink> / Device
         </p>
         <h1 class="text-2xl font-bold tracking-tight">
           {{ device?.ip || 'Dispositivo' }}
         </h1>
       </div>
-      <UButton to="/dashboard" variant="ghost" color="neutral">
+      <UButton
+        to="/dashboard"
+        variant="ghost"
+        color="neutral"
+      >
         Volver
       </UButton>
     </div>
 
-    <div v-if="loading" class="py-10 flex justify-center">
-      <UIcon name="i-lucide-loader-2" class="size-7 animate-spin text-primary" />
+    <div
+      v-if="loading"
+      class="py-10 flex justify-center"
+    >
+      <UIcon
+        name="i-lucide-loader-2"
+        class="size-7 animate-spin text-primary"
+      />
     </div>
 
     <template v-else-if="device">
       <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UCard>
           <template #header>
-            <p class="text-sm text-muted">ID del dispositivo</p>
+            <p class="text-sm text-muted">
+              ID del dispositivo
+            </p>
           </template>
-          <p class="text-xl font-semibold">{{ device.ip }}</p>
+          <p class="text-xl font-semibold">
+            {{ device.ip }}
+          </p>
         </UCard>
 
         <UCard>
           <template #header>
-            <p class="text-sm text-muted">Ubicacion</p>
+            <p class="text-sm text-muted">
+              Ubicacion
+            </p>
           </template>
-          <p class="text-xl font-semibold">{{ device.room.zone.name }}</p>
-          <p class="text-xs text-muted">{{ device.room.name }}</p>
+          <p class="text-xl font-semibold">
+            {{ device.room.zone.name }}
+          </p>
+          <p class="text-xs text-muted">
+            {{ device.room.name }}
+          </p>
         </UCard>
 
         <UCard>
           <template #header>
-            <p class="text-sm text-muted">Estado</p>
+            <p class="text-sm text-muted">
+              Estado
+            </p>
           </template>
           <div class="flex items-center gap-2">
-            <UBadge :color="device.status ? 'success' : 'error'" variant="subtle">
+            <UBadge
+              :color="device.status ? 'success' : 'error'"
+              variant="subtle"
+            >
               {{ device.status ? 'Online' : 'Offline' }}
             </UBadge>
-            <UBadge color="neutral" variant="outline">
+            <UBadge
+              color="neutral"
+              variant="outline"
+            >
               {{ device.type }}
             </UBadge>
           </div>
         </UCard>
       </section>
 
-      <section v-if="groupedStats.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <UCard v-for="group in groupedStats" :key="group.name">
+      <section
+        v-if="groupedStats.length > 0"
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
+        <UCard
+          v-for="group in groupedStats"
+          :key="group.name"
+        >
           <template #header>
             <div class="flex items-center justify-between gap-2">
-              <UBadge :color="statColor(group.name)" variant="subtle">
+              <UBadge
+                :color="statColor(group.name)"
+                variant="subtle"
+              >
                 {{ group.name }}
               </UBadge>
-              <UBadge color="neutral" variant="outline" size="sm">
+              <UBadge
+                color="neutral"
+                variant="outline"
+                size="sm"
+              >
                 {{ group.dataType }}
               </UBadge>
             </div>
           </template>
           <p class="text-3xl font-semibold">
             {{ group.latest.quantity }}
-            <span v-if="group.unit" class="text-base text-muted font-normal">{{ group.unit }}</span>
+            <span
+              v-if="group.unit"
+              class="text-base text-muted font-normal"
+            >{{ group.unit }}</span>
           </p>
           <p class="text-xs text-muted mt-1">
             Ultima lectura {{ formatDate(group.latest.time) }} · {{ group.items.length }} muestras
@@ -193,28 +240,46 @@ const groupedStats = computed<StatGroup[]>(() => {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold">Estadisticas del dispositivo</h2>
-              <UBadge color="neutral" variant="outline">
+              <h2 class="text-base font-semibold">
+                Estadisticas del dispositivo
+              </h2>
+              <UBadge
+                color="neutral"
+                variant="outline"
+              >
                 {{ device.stats.length }} registros
               </UBadge>
             </div>
           </template>
 
-          <div v-if="device.stats.length === 0" class="text-sm text-muted">
+          <div
+            v-if="device.stats.length === 0"
+            class="text-sm text-muted"
+          >
             Este dispositivo aun no tiene estadisticas registradas.
           </div>
 
-          <div v-else class="space-y-2">
+          <div
+            v-else
+            class="space-y-2"
+          >
             <div
               v-for="stat in device.stats"
               :key="stat.id"
               class="rounded-lg border border-accented p-3 flex flex-wrap items-center justify-between gap-2"
             >
               <div class="flex items-center gap-2 flex-wrap">
-                <UBadge :color="statColor(stat.stat_type.name)" variant="subtle">
+                <UBadge
+                  :color="statColor(stat.stat_type.name)"
+                  variant="subtle"
+                >
                   {{ stat.stat_type.name }}
                 </UBadge>
-                <UBadge color="neutral" variant="outline" size="sm">
+                <UBadge
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                >
                   {{ stat.stat_type.data_type.name }}
                 </UBadge>
                 <p class="font-medium">

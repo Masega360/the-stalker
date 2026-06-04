@@ -2,29 +2,29 @@
 const auth = useAuth()
 
 const registerForm = reactive({
-  username: "",
-  password: ""
+  username: '',
+  password: ''
 })
 const showPassword = ref(false)
 
 const loadingRegister = ref(false)
-const feedback = ref("")
+const feedback = ref('')
 
 const register = async () => {
   loadingRegister.value = true
-  feedback.value = ""
+  feedback.value = ''
   try {
-    const response = await $fetch<{ user: any }>("/api/auth/register", {
-      method: "POST",
+    const response = await $fetch<{ user }>('/api/auth/register', {
+      method: 'POST',
       body: {
         username: registerForm.username,
         password: registerForm.password
       }
     })
     auth.user.value = response.user
-    navigateTo("/")
+    navigateTo('/')
   } catch (error) {
-    feedback.value = (error as Error).message || "No se pudo registrar. Verificá los datos."
+    feedback.value = (error as Error).message || 'No se pudo registrar. Verificá los datos.'
   } finally {
     loadingRegister.value = false
   }
@@ -41,7 +41,10 @@ const register = async () => {
       <template #header>
         <div class="text-center">
           <div class="w-16 h-16 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-            <UIcon name="i-lucide-user-plus" class="w-8 h-8" />
+            <UIcon
+              name="i-lucide-user-plus"
+              class="w-8 h-8"
+            />
           </div>
           <h2 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Crear Cuenta
@@ -111,8 +114,14 @@ const register = async () => {
           </UInput>
         </div>
 
-        <div v-if="feedback" class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">
-          <UIcon name="i-lucide-alert-circle" class="w-4 h-4 shrink-0" />
+        <div
+          v-if="feedback"
+          class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2"
+        >
+          <UIcon
+            name="i-lucide-alert-circle"
+            class="w-4 h-4 shrink-0"
+          />
           {{ feedback }}
         </div>
 
@@ -129,7 +138,10 @@ const register = async () => {
 
         <div class="text-sm text-center mt-6 text-gray-500 dark:text-gray-400">
           ¿Ya tenés una cuenta?
-          <NuxtLink to="/auth/login" class="font-semibold text-cyan-600 hover:text-cyan-500 transition-colors underline-offset-4 hover:underline">
+          <NuxtLink
+            to="/auth/login"
+            class="font-semibold text-cyan-600 hover:text-cyan-500 transition-colors underline-offset-4 hover:underline"
+          >
             Iniciá sesión acá
           </NuxtLink>
         </div>

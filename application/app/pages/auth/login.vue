@@ -1,28 +1,28 @@
 <script setup lang="ts">
 const auth = useAuth()
 const loginForm = reactive({
-  username: "",
-  password: ""
+  username: '',
+  password: ''
 })
 const showPassword = ref(false)
 const loadingLogin = ref(false)
-const feedback = ref("")
+const feedback = ref('')
 
 const login = async () => {
   loadingLogin.value = true
-  feedback.value = ""
+  feedback.value = ''
   try {
-    const response = await $fetch<{ user: any }>("/api/auth/login", {
-      method: "POST",
+    const response = await $fetch<{ user }>('/api/auth/login', {
+      method: 'POST',
       body: {
         username: loginForm.username,
         password: loginForm.password
       }
     })
     auth.user.value = response.user
-    navigateTo("/")
+    navigateTo('/')
   } catch (error) {
-    feedback.value = (error as Error).message || "Credenciales invalidas"
+    feedback.value = (error as Error).message || 'Credenciales invalidas'
   } finally {
     loadingLogin.value = false
   }
@@ -39,7 +39,10 @@ const login = async () => {
       <template #header>
         <div class="text-center">
           <div class="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 text-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-            <UIcon name="i-lucide-lock-keyhole" class="w-8 h-8" />
+            <UIcon
+              name="i-lucide-lock-keyhole"
+              class="w-8 h-8"
+            />
           </div>
           <h2 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Iniciar Sesión
@@ -102,9 +105,15 @@ const login = async () => {
             </template>
           </UInput>
         </div>
-        
-        <div v-if="feedback" class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">
-          <UIcon name="i-lucide-alert-circle" class="w-4 h-4 shrink-0" />
+
+        <div
+          v-if="feedback"
+          class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2"
+        >
+          <UIcon
+            name="i-lucide-alert-circle"
+            class="w-4 h-4 shrink-0"
+          />
           {{ feedback }}
         </div>
 
@@ -120,8 +129,11 @@ const login = async () => {
         </UButton>
 
         <div class="text-sm text-center mt-6 text-gray-500 dark:text-gray-400">
-          ¿No tenés cuenta? 
-          <NuxtLink to="/auth/register" class="font-semibold text-primary hover:text-primary-600 transition-colors underline-offset-4 hover:underline">
+          ¿No tenés cuenta?
+          <NuxtLink
+            to="/auth/register"
+            class="font-semibold text-primary hover:text-primary-600 transition-colors underline-offset-4 hover:underline"
+          >
             Crear cuenta nueva
           </NuxtLink>
         </div>

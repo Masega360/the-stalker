@@ -1,4 +1,4 @@
-import { prisma } from "../../utils/db";
+import { prisma } from '../../utils/db'
 
 type IncomingStatBody = {
   snapshot_id?: string
@@ -6,26 +6,26 @@ type IncomingStatBody = {
   data_type?: string
   value?: number
   device_id?: string
-};
+}
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<IncomingStatBody>(event);
+  const body = await readBody<IncomingStatBody>(event)
 
-  const snapshotId = body.snapshot_id?.trim();
-  const statTypeName = body.stat_type?.trim();
-  const dataTypeName = body.data_type?.trim();
-  const value = body.value;
-  const deviceId = body.device_id?.trim();
+  const snapshotId = body.snapshot_id?.trim()
+  const statTypeName = body.stat_type?.trim()
+  const dataTypeName = body.data_type?.trim()
+  const value = body.value
+  const deviceId = body.device_id?.trim()
 
-  if (!snapshotId || !statTypeName || !dataTypeName || typeof value !== "number") {
+  if (!snapshotId || !statTypeName || !dataTypeName || typeof value !== 'number') {
     throw createError({
       statusCode: 400,
-      statusMessage: "snapshot_id, stat_type, data_type and value are required"
-    });
+      statusMessage: 'snapshot_id, stat_type, data_type and value are required'
+    })
   }
 
   if (!Number.isFinite(value)) {
-    throw createError({ statusCode: 400, statusMessage: "value must be a finite number" });
+    throw createError({ statusCode: 400, statusMessage: 'value must be a finite number' })
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       where: { name: dataTypeName },
       update: {},
       create: { name: dataTypeName }
-    });
+    })
 
     const statType = await tx.statType.upsert({
       where: { name: statTypeName },
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
         name: statTypeName,
         data_type_id: dataType.id
       }
-    });
+    })
 
     const stat = await tx.stats.create({
       data: {
@@ -54,15 +54,15 @@ export default defineEventHandler(async (event) => {
       include: {
         stat_type: { include: { data_type: true } }
       }
-    });
+    })
 
-    return { stat, statType, dataType };
-  });
+    return { stat, statType, dataType }
+  })
 
-  setResponseStatus(event, 201);
+  setResponseStatus(event, 201)
   return {
     stat: result.stat,
     stat_type: result.statType,
     data_type: result.dataType
-  };
-});
+  }
+})

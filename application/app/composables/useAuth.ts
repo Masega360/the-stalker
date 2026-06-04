@@ -1,5 +1,3 @@
-import { ref } from 'vue'
-
 export type PublicUser = {
   id: string
   username: string

@@ -17,40 +17,58 @@ const auth = useAuth()
           size="lg"
           class="rounded-full px-4 py-1 animate-pulse-slow"
         >
-          <UIcon name="i-lucide-radar" class="w-4 h-4 mr-2" />
+          <UIcon
+            name="i-lucide-radar"
+            class="w-4 h-4 mr-2"
+          />
           Sistema Activo v1.0
         </UBadge>
       </div>
 
       <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-8">
-        Bienvenido a <br />
+        Bienvenido a <br>
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-cyan-500">
           The Stalker
         </span>
       </h1>
-      
+
       <p class="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
         Una plataforma inteligente de monitorización en tiempo real.
         Controlá tus dispositivos, analizá estadísticas y gestioná tus zonas desde un único lugar.
       </p>
 
-      <div v-if="auth.loading.value" class="flex justify-center py-4">
-        <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-primary" />
+      <div
+        v-if="auth.loading.value"
+        class="flex justify-center py-4"
+      >
+        <UIcon
+          name="i-lucide-loader-2"
+          class="w-8 h-8 animate-spin text-primary"
+        />
       </div>
-      
-      <div v-else-if="auth.user.value" class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up">
+
+      <div
+        v-else-if="auth.user.value"
+        class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up"
+      >
         <UButton
           to="/dashboard"
           size="xl"
           color="primary"
           class="px-8 font-semibold shadow-lg shadow-primary-500/30 transition-transform hover:scale-105"
         >
-          <UIcon name="i-lucide-layout-dashboard" class="w-5 h-5 mr-2" />
+          <UIcon
+            name="i-lucide-layout-dashboard"
+            class="w-5 h-5 mr-2"
+          />
           Ir al Panel
         </UButton>
       </div>
-      
-      <div v-else class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up">
+
+      <div
+        v-else
+        class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up"
+      >
         <UButton
           to="/auth/login"
           size="xl"
@@ -78,30 +96,51 @@ const auth = useAuth()
           <UCard class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300">
             <div class="p-4 flex flex-col items-center text-center">
               <div class="w-14 h-14 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4 text-primary">
-                <UIcon name="i-lucide-activity" class="w-7 h-7" />
+                <UIcon
+                  name="i-lucide-activity"
+                  class="w-7 h-7"
+                />
               </div>
-              <h3 class="text-lg font-bold mb-2">Monitorización 24/7</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Obtené telemetría en tiempo real de todos tus sensores sin latencia.</p>
+              <h3 class="text-lg font-bold mb-2">
+                Monitorización 24/7
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Obtené telemetría en tiempo real de todos tus sensores sin latencia.
+              </p>
             </div>
           </UCard>
-          
+
           <UCard class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300">
             <div class="p-4 flex flex-col items-center text-center">
               <div class="w-14 h-14 rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-4 text-cyan-500">
-                <UIcon name="i-lucide-cpu" class="w-7 h-7" />
+                <UIcon
+                  name="i-lucide-cpu"
+                  class="w-7 h-7"
+                />
               </div>
-              <h3 class="text-lg font-bold mb-2">Control de Actuadores</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Interactuá remotamente con tus dispositivos y controlá su estado al instante.</p>
+              <h3 class="text-lg font-bold mb-2">
+                Control de Actuadores
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Interactuá remotamente con tus dispositivos y controlá su estado al instante.
+              </p>
             </div>
           </UCard>
-          
+
           <UCard class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300">
             <div class="p-4 flex flex-col items-center text-center">
               <div class="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4 text-blue-500">
-                <UIcon name="i-lucide-bar-chart-3" class="w-7 h-7" />
+                <UIcon
+                  name="i-lucide-bar-chart-3"
+                  class="w-7 h-7"
+                />
               </div>
-              <h3 class="text-lg font-bold mb-2">Análisis de Datos</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Estadísticas detalladas por zonas y dispositivos para tomar mejores decisiones.</p>
+              <h3 class="text-lg font-bold mb-2">
+                Análisis de Datos
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Estadísticas detalladas por zonas y dispositivos para tomar mejores decisiones.
+              </p>
             </div>
           </UCard>
         </div>

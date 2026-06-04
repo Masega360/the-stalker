@@ -1,4 +1,4 @@
-import { prisma } from "../utils/db";
+import { prisma } from '../utils/db'
 
 export default defineEventHandler(async () => {
   const users = await prisma.user.findMany({
@@ -8,6 +8,6 @@ export default defineEventHandler(async () => {
       role: true,
       created_at: true
     }
-  });
-  return users;
-});
+  })
+  return users
+})
