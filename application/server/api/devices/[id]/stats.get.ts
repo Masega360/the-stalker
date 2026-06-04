@@ -1,14 +1,23 @@
 import { prisma } from "../../../utils/db";
+import { requireUser } from "../../../utils/auth";
 
 export default defineEventHandler(async (event) => {
+  const user = requireUser(event);
   const id = getRouterParam(event, "id");
 
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "device id is required" });
   }
 
-  const device = await prisma.device.findUnique({
-    where: { id },
+  const device = await prisma.device.findFirst({
+    where: {
+      id,
+      room: {
+        zone: {
+          users: { some: { user_id: user.id } }
+        }
+      }
+    },
     include: {
       room: {
         include: {
@@ -16,7 +25,12 @@ export default defineEventHandler(async (event) => {
         }
       },
       stats: {
-        orderBy: { time: "desc" }
+        orderBy: { time: "desc" },
+        include: {
+          stat_type: {
+            include: { data_type: true }
+          }
+        }
       }
     }
   });

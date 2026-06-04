@@ -4,6 +4,7 @@ const loginForm = reactive({
   username: "",
   password: ""
 })
+const showPassword = ref(false)
 const loadingLogin = ref(false)
 const feedback = ref("")
 
@@ -81,12 +82,25 @@ const login = async () => {
           <UInput
             id="login-password"
             v-model="loginForm.password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             placeholder="••••••••"
             icon="i-lucide-key"
             size="lg"
             class="w-full"
-          />
+          >
+            <template #trailing>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                :padded="false"
+                type="button"
+                @click="showPassword = !showPassword"
+              />
+            </template>
+          </UInput>
         </div>
         
         <div v-if="feedback" class="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">

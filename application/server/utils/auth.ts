@@ -1,3 +1,4 @@
+import type { H3Event } from "h3";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 const SESSION_COOKIE_NAME = "stalker_session";
@@ -7,6 +8,11 @@ type SessionPayload = {
   sub: string
   username: string
   exp: number
+};
+
+export type SessionUser = {
+  id: string
+  username: string
 };
 
 const toBase64Url = (value: string) => Buffer.from(value, "utf8").toString("base64url");
@@ -78,4 +84,19 @@ export const readSessionToken = (token: string | undefined): SessionPayload | nu
 export const authCookie = {
   name: SESSION_COOKIE_NAME,
   maxAge: SESSION_MAX_AGE_SECONDS
+};
+
+export const getSessionUser = (event: H3Event): SessionUser | null => {
+  const token = getCookie(event, authCookie.name);
+  const session = readSessionToken(token);
+  if (!session) return null;
+  return { id: session.sub, username: session.username };
+};
+
+export const requireUser = (event: H3Event): SessionUser => {
+  const user = getSessionUser(event);
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: "unauthenticated" });
+  }
+  return user;
 };

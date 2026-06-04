@@ -20,8 +20,27 @@ interface ZoneNode {
   rooms: SpaceNode[]
 }
 
+interface RecentStat {
+  id: string
+  quantity: number
+  time: string
+  snapshot_id: string | null
+  stat_type: {
+    id: string
+    name: string
+    data_type: { name: string, unit: string | null }
+  }
+  device: {
+    id: string
+    ip: string
+    room: { name: string, zone: { name: string } }
+  } | null
+}
+
 const lastUpdate = ref(new Date())
 const zones = ref<ZoneNode[]>([])
+const recentStats = ref<RecentStat[]>([])
+const loadingStats = ref(false)
 
 const createZoneOpen = ref(false)
 const createSpaceOpen = ref(false)
@@ -35,7 +54,7 @@ const zoneNameInput = ref('')
 const spaceNameInput = ref('')
 const selectedZoneId = ref('')
 const selectedRoomId = ref('')
-const deviceIpInput = ref('')
+const deviceKeyInput = ref('')
 const deviceTypeInput = ref<DeviceType>('SENSOR')
 const deviceStatusInput = ref(true)
 
@@ -50,7 +69,43 @@ const loadZones = async () => {
   }
 }
 
-onMounted(loadZones)
+const loadStats = async () => {
+  loadingStats.value = true
+  try {
+    const response = await $fetch<{ stats: RecentStat[] }>('/api/stats?limit=20')
+    recentStats.value = response.stats
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+const refreshAll = async () => {
+  await Promise.all([loadZones(), loadStats()])
+}
+
+onMounted(refreshAll)
+
+const STAT_COLORS = ['primary', 'warning', 'info', 'success', 'error', 'secondary'] as const
+type StatColor = typeof STAT_COLORS[number]
+const statColor = (name: string): StatColor => {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i)
+    hash |= 0
+  }
+  return STAT_COLORS[Math.abs(hash) % STAT_COLORS.length]!
+}
+const formatStatValue = (stat: RecentStat) =>
+  stat.stat_type.data_type.unit
+    ? `${stat.quantity} ${stat.stat_type.data_type.unit}`
+    : String(stat.quantity)
+const formatStatTime = (value: string) =>
+  new Date(value).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 
 const openCreateSpace = (zoneId: string) => {
   selectedZoneId.value = zoneId
@@ -60,7 +115,7 @@ const openCreateSpace = (zoneId: string) => {
 
 const openCreateDevice = (roomId: string) => {
   selectedRoomId.value = roomId
-  deviceIpInput.value = ''
+  deviceKeyInput.value = ''
   deviceTypeInput.value = 'SENSOR'
   deviceStatusInput.value = true
   createDeviceOpen.value = true
@@ -78,7 +133,7 @@ const createZone = async () => {
     })
     zoneNameInput.value = ''
     createZoneOpen.value = false
-    await loadZones()
+    await refreshAll()
   } finally {
     creatingZone.value = false
   }
@@ -97,31 +152,31 @@ const createSpace = async () => {
     })
     spaceNameInput.value = ''
     createSpaceOpen.value = false
-    await loadZones()
+    await refreshAll()
   } finally {
     creatingSpace.value = false
   }
 }
 
 const createDevice = async () => {
-  const ip = deviceIpInput.value.trim()
+  const deviceKey = deviceKeyInput.value.trim()
   const roomId = selectedRoomId.value
-  if (!ip || !roomId) return
+  if (!deviceKey || !roomId) return
 
   creatingDevice.value = true
   try {
     await $fetch('/api/devices', {
       method: 'POST',
       body: {
-        ip,
+        ip: deviceKey,
         status: deviceStatusInput.value,
         type: deviceTypeInput.value,
         roomId
       }
     })
-    deviceIpInput.value = ''
+    deviceKeyInput.value = ''
     createDeviceOpen.value = false
-    await loadZones()
+    await refreshAll()
   } finally {
     creatingDevice.value = false
   }
@@ -143,7 +198,7 @@ const offlineDevices = computed(() => totalDevices.value - onlineDevices.value)
 const health = computed(() => (totalDevices.value === 0 ? 0 : Math.round((onlineDevices.value / totalDevices.value) * 100)))
 
 const statusColor = (isOnline: boolean) => (isOnline ? 'success' : 'error')
-const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.id.slice(0, 8)}`
+const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.ip}`
 </script>
 
 <template>
@@ -287,6 +342,69 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.id.slice
         <template #header>
           <div class="flex items-center justify-between">
             <h2 class="text-base font-semibold">
+              Stats recientes
+            </h2>
+            <div class="flex items-center gap-2">
+              <UBadge color="neutral" variant="outline">
+                {{ recentStats.length }} registros
+              </UBadge>
+              <UButton size="xs" variant="ghost" color="neutral" :loading="loadingStats" @click="loadStats">
+                <UIcon name="i-lucide-refresh-cw" class="size-3.5" />
+              </UButton>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="loadingStats" class="py-8 flex justify-center">
+          <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-primary" />
+        </div>
+
+        <div v-else-if="recentStats.length === 0" class="py-6 text-sm text-muted text-center">
+          Todavia no llegaron stats. Enviá un POST a <code class="font-mono text-xs">/api/internal/stats</code> para registrar.
+        </div>
+
+        <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+          <div
+            v-for="stat in recentStats"
+            :key="stat.id"
+            class="rounded-lg border border-accented p-3 flex flex-wrap items-center justify-between gap-2"
+          >
+            <div class="flex items-center gap-2 flex-wrap">
+              <UBadge :color="statColor(stat.stat_type.name)" variant="subtle">
+                {{ stat.stat_type.name }}
+              </UBadge>
+              <UBadge color="neutral" variant="outline" size="sm">
+                {{ stat.stat_type.data_type.name }}
+              </UBadge>
+              <span class="font-medium">{{ formatStatValue(stat) }}</span>
+              <span
+                v-if="stat.snapshot_id"
+                class="text-xs text-muted font-mono"
+                :title="stat.snapshot_id"
+              >
+                snap {{ stat.snapshot_id.slice(0, 8) }}
+              </span>
+              <NuxtLink
+                v-if="stat.device"
+                :to="`/device/${stat.device.id}`"
+                class="text-xs text-primary hover:underline"
+              >
+                {{ stat.device.room.zone.name }} / {{ stat.device.room.name }} ({{ stat.device.ip }})
+              </NuxtLink>
+            </div>
+            <p class="text-xs text-muted">
+              {{ formatStatTime(stat.time) }}
+            </p>
+          </div>
+        </div>
+      </UCard>
+    </section>
+
+    <section>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">
               Diagrama de zonas y espacios
             </h2>
             <UBadge color="primary" variant="outline">
@@ -346,7 +464,7 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.id.slice
                       class="gap-1 hover:opacity-80 cursor-pointer"
                     >
                       <UIcon :name="device.type === 'SENSOR' ? 'i-lucide-scan-search' : 'i-lucide-radio' " class="size-3.5" />
-                      {{ deviceLabel(device) }} ({{ device.ip }})
+                      {{ deviceLabel(device) }}
                     </UBadge>
                   </NuxtLink>
                 </div>
@@ -400,8 +518,8 @@ const deviceLabel = (device: DeviceNode) => `${device.type} · ${device.id.slice
     <UModal v-model:open="createDeviceOpen" title="Crear dispositivo">
       <template #body>
         <div class="space-y-3">
-          <UFormField label="IP del dispositivo">
-            <UInput v-model="deviceIpInput" placeholder="Ej: 10.20.1.34" />
+          <UFormField label="ID del dispositivo">
+            <UInput v-model="deviceKeyInput" placeholder="Ej: sensor-porton-norte" />
           </UFormField>
 
           <UFormField label="Tipo">

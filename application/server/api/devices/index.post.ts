@@ -1,14 +1,17 @@
-import { DEVICES } from "@prisma/client";
 import { prisma } from "../../utils/db";
+import { requireUser } from "../../utils/auth";
+
+type DeviceKind = "SENSOR" | "ACTUATOR";
 
 type CreateDeviceBody = {
   ip?: string
   status?: boolean
-  type?: DEVICES
+  type?: DeviceKind
   roomId?: string
 };
 
 export default defineEventHandler(async (event) => {
+  const user = requireUser(event);
   const body = await readBody<CreateDeviceBody>(event);
   const ip = body.ip?.trim();
   const roomId = body.roomId?.trim();
@@ -22,14 +25,23 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (type !== DEVICES.SENSOR && type !== DEVICES.ACTUATOR) {
+  if (type !== "SENSOR" && type !== "ACTUATOR") {
     throw createError({
       statusCode: 400,
       statusMessage: "invalid device type"
     });
   }
 
-  const room = await prisma.room.findUnique({ where: { id: roomId } });
+  const room = await prisma.room.findFirst({
+    where: {
+      id: roomId,
+      zone: {
+        users: { some: { user_id: user.id } }
+      }
+    },
+    select: { id: true }
+  });
+
   if (!room) {
     throw createError({ statusCode: 404, statusMessage: "space not found" });
   }
@@ -39,7 +51,7 @@ export default defineEventHandler(async (event) => {
       ip,
       status,
       type,
-      room_id: roomId
+      room_id: room.id
     }
   });
 

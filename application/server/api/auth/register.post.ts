@@ -1,4 +1,3 @@
-import { ROLE } from "@prisma/client";
 import { prisma } from "../../utils/db";
 import { authCookie, createSessionToken, hashPassword } from "../../utils/auth";
 
@@ -32,7 +31,7 @@ export default defineEventHandler(async (event) => {
     data: {
       username,
       p_hash: hashPassword(password),
-      role: ROLE.USER
+      role: "USER"
     },
     select: {
       id: true,
