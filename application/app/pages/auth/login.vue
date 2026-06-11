@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import type { User } from '@/composables/useAuth'
+
 const auth = useAuth()
+
 const loginForm = reactive({
   username: '',
   password: ''
 })
+
 const showPassword = ref(false)
 const loadingLogin = ref(false)
 const feedback = ref('')
@@ -12,7 +16,7 @@ const login = async () => {
   loadingLogin.value = true
   feedback.value = ''
   try {
-    const response = await $fetch<{ user }>('/api/auth/login', {
+    const response = await $fetch<{ user: User }>('/api/auth/login', {
       method: 'POST',
       body: {
         username: loginForm.username,

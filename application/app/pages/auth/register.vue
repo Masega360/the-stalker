@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import type { User } from '@/composables/useAuth'
+
 const auth = useAuth()
 
 const registerForm = reactive({
   username: '',
   password: ''
 })
+
 const showPassword = ref(false)
 
 const loadingRegister = ref(false)
@@ -14,7 +17,7 @@ const register = async () => {
   loadingRegister.value = true
   feedback.value = ''
   try {
-    const response = await $fetch<{ user }>('/api/auth/register', {
+    const response = await $fetch<{ user: User }>('/api/auth/register', {
       method: 'POST',
       body: {
         username: registerForm.username,

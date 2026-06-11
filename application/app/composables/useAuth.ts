@@ -1,8 +1,16 @@
+export type User = {
+  username: string
+  password: string
+  id: string
+  role: string
+}
+
 export type PublicUser = {
   id: string
   username: string
   role: string
 }
+
 
 export const useAuth = () => {
   const user = useState<PublicUser | null>('auth-user', () => null)
