@@ -5,6 +5,7 @@ from mqtt.subscriber import start, publish_relay
 from pipeline.formatter import format_image
 from pipeline.preprocessor import preprocess
 from pipeline.sender import send, register_device
+from pipeline.actuator import evaluate_rules
 from stats.provider import provide
 from vision import get_handler
 from core.logger import log
@@ -32,6 +33,8 @@ def on_image(payload, device_id):
     stats = provide(response, device_id)
     if not stats:
         return
+
+    evaluate_rules(stats)
 
     for r in send(stats):
         log("SENDER", r)
