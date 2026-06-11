@@ -1,3 +1,45 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Variables de entorno (credenciales)
+worker/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Modelos YOLO
+*.pt
+*.onnx
+
+# Pytest
+.pytest_cache/
+
+# Imágenes de prueba
+worker/test/*.jpg
+worker/test/*.jpeg
+worker/test/*.png
+
+# Docker
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 .idea
 .vscode
 .config
