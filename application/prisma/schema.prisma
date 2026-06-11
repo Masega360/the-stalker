@@ -1,0 +1,184 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//
+// ENUMS
+//
+
+enum ROLE {
+  OWNER
+  ADMIN
+  USER
+}
+
+enum DEVICES {
+  SENSOR
+  ACTUATOR
+}
+
+enum CONDITION {
+  GT
+  LT
+  EQ
+}
+
+//
+// MODELS
+//
+
+model User {
+  id        String       @id @default(uuid())
+  username  String       @unique
+  p_hash    String
+  role      ROLE
+
+  zones     UserInZone[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Zone {
+  id     String       @id @default(uuid())
+  name   String
+
+  users  UserInZone[]
+  rooms  Room[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model UserInZone {
+  user_id   String
+  zone_id   String
+
+  user User @relation(fields: [user_id], references: [id])
+  zone Zone @relation(fields: [zone_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@id([user_id, zone_id]) // PK compuesta
+}
+
+model Room {
+  id      String  @id @default(uuid())
+  name    String
+  zone_id String
+
+  zone    Zone    @relation(fields: [zone_id], references: [id])
+  devices Device[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Device {
+  id      String  @id @default(uuid())
+  ip      String
+  status  Boolean
+  type    DEVICES
+
+  room_id String
+  room    Room    @relation(fields: [room_id], references: [id])
+
+  stats          Stats[]
+  logs           Log[]
+  sensor_rules   Rule[]  @relation("sensor_device")
+  actuator_rules Rule[]  @relation("actuator_device")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model StatDataType {
+  id   String  @id @default(uuid())
+  name String  @unique // ej: int, float, string
+  unit String? // ej: #, %, años, metros
+
+  stat_types StatType[]
+  rules      Rule[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model StatType {
+  id   String @id @default(uuid())
+  name String @unique // ej: people_count, age_avg
+
+  data_type_id String
+  data_type    StatDataType @relation(fields: [data_type_id], references: [id])
+
+  stats Stats[]
+  rules Rule[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Stats {
+  id          String   @id @default(uuid())
+  quantity    Int
+  time        DateTime @default(now())
+  snapshot_id String?
+
+  device_id String?
+  device    Device? @relation(fields: [device_id], references: [id])
+
+  stat_type_id String
+  stat_type    StatType @relation(fields: [stat_type_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([snapshot_id])
+  @@index([stat_type_id])
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  time      DateTime
+  body      String
+  code      Int
+
+  device_id String
+  device    Device   @relation(fields: [device_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Rule {
+  id                 String       @id @default(uuid())
+  sensor_device_id   String
+  sensor_device      Device       @relation("sensor_device", fields: [sensor_device_id], references: [id])
+  condition          CONDITION
+  comparator         Float
+  actuator_device_id String
+  actuator_device    Device       @relation("actuator_device", fields: [actuator_device_id], references: [id])
+  stat_type_id       String
+  stat_type          StatType     @relation(fields: [stat_type_id], references: [id])
+  stat_data_type_id  String
+  stat_data_type     StatDataType @relation(fields: [stat_data_type_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([sensor_device_id])
+  @@index([actuator_device_id])
+  @@index([stat_type_id])
+  @@index([stat_data_type_id])
+}

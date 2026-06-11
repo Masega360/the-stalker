@@ -40,3 +40,7 @@ worker/test/*.png
 # OS
 .DS_Store
 Thumbs.db
+.idea
+.vscode
+.config
+.cursor
