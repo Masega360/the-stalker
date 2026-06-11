@@ -27,6 +27,12 @@ enum DEVICES {
   ACTUATOR
 }
 
+enum CONDITION {
+  GT
+  LT
+  EQ
+}
+
 //
 // MODELS
 //
@@ -88,8 +94,10 @@ model Device {
   room_id String
   room    Room    @relation(fields: [room_id], references: [id])
 
-  stats   Stats[]
-  logs    Log[]
+  stats          Stats[]
+  logs           Log[]
+  sensor_rules   Rule[]  @relation("sensor_device")
+  actuator_rules Rule[]  @relation("actuator_device")
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -101,6 +109,7 @@ model StatDataType {
   unit String? // ej: #, %, años, metros
 
   stat_types StatType[]
+  rules      Rule[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -114,6 +123,7 @@ model StatType {
   data_type    StatDataType @relation(fields: [data_type_id], references: [id])
 
   stats Stats[]
+  rules Rule[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -149,4 +159,26 @@ model Log {
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model Rule {
+  id                 String       @id @default(uuid())
+  sensor_device_id   String
+  sensor_device      Device       @relation("sensor_device", fields: [sensor_device_id], references: [id])
+  condition          CONDITION
+  comparator         Float
+  actuator_device_id String
+  actuator_device    Device       @relation("actuator_device", fields: [actuator_device_id], references: [id])
+  stat_type_id       String
+  stat_type          StatType     @relation(fields: [stat_type_id], references: [id])
+  stat_data_type_id  String
+  stat_data_type     StatDataType @relation(fields: [stat_data_type_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([sensor_device_id])
+  @@index([actuator_device_id])
+  @@index([stat_type_id])
+  @@index([stat_data_type_id])
 }
