@@ -51,6 +51,22 @@ useSeoMeta({
             Cargando...
           </div>
           <template v-else-if="auth.user.value">
+            <UButton
+              to="/dashboard"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+            >
+              Dashboard
+            </UButton>
+            <UButton
+              to="/admin/rules"
+              variant="ghost"
+              color="neutral"
+              size="sm"
+            >
+              Reglas
+            </UButton>
             <div class="flex items-center gap-2">
               <span class="size-7 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200 inline-flex items-center justify-center text-xs font-semibold">
                 {{ userInitial }}
