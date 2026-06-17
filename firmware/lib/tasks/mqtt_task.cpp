@@ -96,9 +96,9 @@ static void mqttTaskFunction(void *pvParameters) {
             Serial.println("[MQTT] Intentando conectar...");
             if (mqttClient.connect(MQTT_CLIENT_ID)) {
                 Serial.println("[MQTT] ✓ Conectado");
-                // Suscribirse al topic de acciones
-                mqttClient.publish("register/cam", MQTT_CLIENT_ID);
-                Serial.println("[MQTT] ✓ Registrado en /register/cam");
+                // Registrar dispositivo en el topic correspondiente
+                mqttClient.publish(MQTT_REGISTER_TOPIC, DEVICE_ID);
+                Serial.printf("[MQTT] ✓ Registrado en %s (ID: %s)\n", MQTT_REGISTER_TOPIC, DEVICE_ID);
                 mqttClient.publish(
                     (String(MQTT_CLIENT_ID) + String(MQTT_STATUS_TOPIC)).c_str(),
                     "online"

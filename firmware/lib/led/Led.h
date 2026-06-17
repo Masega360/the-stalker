@@ -5,7 +5,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #ifdef DEVICE_ROLE_ACTOR
-#define LED_BUILTIN_PIN 48
+#define LED_BUILTIN_PIN 2
 #define USE_NEOPIXEL
 #elif defined(DEVICE_ROLE_CAMERA)
 #define LED_BUILTIN_PIN 33 // LED rojo incorporado en la mayoría de ESP32-CAM (activo en BAJO)

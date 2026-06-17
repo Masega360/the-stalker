@@ -8,14 +8,24 @@ static constexpr const char* WIFI_PASSWORD = "123456789";
 // ========== MQTT Configuration ==========
 static constexpr const char* MQTT_SERVER = "3.218.237.212";
 static constexpr int MQTT_PORT = 1883;
-static constexpr const char* MQTT_CLIENT_ID = "ESP32-CAM-01";
 static constexpr const char* MQTT_STATUS_TOPIC = "/status";
 
+// ========== Device Registration ==========
+#ifdef DEVICE_ROLE_CAMERA
+static constexpr const char* DEVICE_ID = "CAM-0000";
+static constexpr const char* MQTT_CLIENT_ID = "CAM-0000";
+static constexpr const char* MQTT_REGISTER_TOPIC = "/register/cam";
+#elif defined(DEVICE_ROLE_ACTOR)
+static constexpr const char* DEVICE_ID = "ACT-0000";
+static constexpr const char* MQTT_CLIENT_ID = "ACT-0000";
+static constexpr const char* MQTT_REGISTER_TOPIC = "/register/actor";
+#endif
+
 // ========== Sensor Configuration ==========
-static constexpr int PIR_SENSOR_PIN = 5;  // GPIO5 para el sensor HC-SR501
+static constexpr int PIR_SENSOR_PIN = 14;  // GPIO14 para el sensor HC-SR501
 
 // ========== Relay Configuration ==========
-static constexpr int RELAY_PIN = 27;  // GPIO27 para el relé
+static constexpr int RELAY_PIN = 33;  // GPIO33 para el relé
 
 // ========== Task Configuration ==========
 static constexpr int WIFI_TASK_STACK_SIZE = 4096;

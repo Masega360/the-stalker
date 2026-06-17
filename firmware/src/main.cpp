@@ -12,12 +12,12 @@
 #include <Led.h>
 
 #ifdef DEVICE_ROLE_ACTOR
-#include <hc_sr501.h>
-#include <sensor_task.h>
 #include <relay.h>
 #endif
 
 #ifdef DEVICE_ROLE_CAMERA
+#include <hc_sr501.h>
+#include <sensor_task.h>
 #include <camera_task.h>
 #endif
 
@@ -34,12 +34,12 @@ TaskHandle_t wifiTaskHandle = NULL;
 TaskHandle_t mqttTaskHandle = NULL;
 
 #ifdef DEVICE_ROLE_ACTOR
-TaskHandle_t sensorTaskHandle = NULL;
-sensors::PIRSensor pirSensor(PIR_SENSOR_PIN);
 relay::Relay relayDevice(RELAY_PIN);
 #endif
 
 #ifdef DEVICE_ROLE_CAMERA
+TaskHandle_t sensorTaskHandle = NULL;
+sensors::PIRSensor pirSensor(PIR_SENSOR_PIN);
 TaskHandle_t cameraTaskHandle = NULL;
 #endif
 
@@ -60,17 +60,23 @@ void setup() {
     Led::LedBuiltIn::setColor(Led::Colors::BLUE, 2000);
     
 #ifdef DEVICE_ROLE_ACTOR
-    pirSensor.init();
-    // relayDevice.init();
+    relayDevice.init();
+    relayDevice.toggle(); // abro
+    delay(2000);
+    relayDevice.toggle(); // cierro para probar
     
     events::EventManager::getInstance().subscribe(
         events::EventType::RELAY_TOGGLE,
         [](const events::Event& event) {
             Serial.print("[Main] Evento RELAY_TOGGLE recibido");
             Led::LedBuiltIn::setColor(Led::Colors::GREEN, 500);
-            //relayDevice.toggle();
+            relayDevice.toggle();
         }
     );
+#endif
+
+#ifdef DEVICE_ROLE_CAMERA
+    pirSensor.init();
 #endif
 
     events::EventManager::getInstance().subscribe(
@@ -84,12 +90,9 @@ void setup() {
     // Crear tareas comunes
     tasks::createWiFiTask(WIFI_TASK_PRIORITY, wifiTaskHandle);
     tasks::createMQTTTask(espClient, MQTT_TASK_PRIORITY, mqttTaskHandle);
-    
-#ifdef DEVICE_ROLE_ACTOR
-    // tasks::createSensorTask(pirSensor, SENSOR_TASK_PRIORITY, sensorTaskHandle);
-#endif
 
 #ifdef DEVICE_ROLE_CAMERA
+    // tasks::createSensorTask(pirSensor, SENSOR_TASK_PRIORITY, sensorTaskHandle);
     tasks::createCameraTask(CAMERA_TASK_PRIORITY, cameraTaskHandle);
 #endif
     
