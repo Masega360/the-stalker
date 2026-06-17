@@ -355,7 +355,7 @@ const slides = [
   },
   {
     // 2 - ESP32-CAM
-    tx: -7, ty: -11, scale: 2.4, rot: -1,
+    tx: 42, ty: 35, scale: 2.4, rot: -1,
     titleVisible: false,
     highlight: 'esp32cam',
     tag: 'HARDWARE', title: 'ESP32-CAM',
@@ -364,7 +364,7 @@ const slides = [
   },
   {
     // 3 - EC2 Worker
-    tx: -30, ty: -11, scale: 2.2, rot: 1,
+    tx: 5, ty: 37, scale: 2.2, rot: 1,
     titleVisible: false,
     highlight: 'cloud-worker',
     tag: 'AWS EC2', title: 'Worker + Rekognition',
@@ -373,7 +373,7 @@ const slides = [
   },
   {
     // 4 - MQTT Broker
-    tx: -55, ty: -11, scale: 2.2, rot: -1,
+    tx: -30, ty: 37, scale: 2.2, rot: -1,
     titleVisible: false,
     highlight: 'cloud-mqtt',
     tag: 'AWS IoT Core', title: 'MQTT Broker',
@@ -382,7 +382,7 @@ const slides = [
   },
   {
     // 5 - Database
-    tx: -30, ty: -55, scale: 2.2, rot: 1,
+    tx: 5, ty: -20, scale: 2.2, rot: 1,
     titleVisible: false,
     highlight: 'cloud-db',
     tag: 'BASE DE DATOS', title: 'Database',
@@ -391,7 +391,7 @@ const slides = [
   },
   {
     // 6 - Nuxt Dashboard
-    tx: -55, ty: -55, scale: 2.2, rot: -1,
+    tx: -35, ty: -20, scale: 2.2, rot: -1,
     titleVisible: false,
     highlight: 'cloud-nuxt',
     tag: 'WEB APP', title: 'Nuxt Dashboard',
@@ -400,7 +400,7 @@ const slides = [
   },
   {
     // 7 - ESP32 DevKit
-    tx: -78, ty: -55, scale: 2.4, rot: 1,
+    tx: -78, ty: -35, scale: 2.4, rot: 1,
     titleVisible: false,
     highlight: 'esp32',
     tag: 'HARDWARE', title: 'ESP32 DevKit',
@@ -432,8 +432,10 @@ function goTo(i) {
   // Title slide
   if (s.titleVisible) {
     titleSlide.classList.remove('hidden');
+    world.style.visibility = 'hidden';
   } else {
     titleSlide.classList.add('hidden');
+    world.style.visibility = 'visible';
   }
 
   // Info panel
