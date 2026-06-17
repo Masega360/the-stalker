@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Emotion Light</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08080d;overflow:hidden;font-family:'Inter',sans-serif;color:#fff;height:100vh;width:100vw}
+
+.circuit-world{
+  position:absolute;
+  width:2200px;height:1200px;
+  top:50%;left:50%;
+  transform-origin:center center;
+  transition:transform 1.6s cubic-bezier(.22,.61,.36,1);
+}
+
+.component{
+  position:absolute;
+  transition:filter .8s ease,opacity .8s ease;
+}
+.component.dimmed{filter:brightness(.15) saturate(0);opacity:.25}
+
+/* Posiciones simétricas - layout horizontal flujo izq a der */
+#esp32cam{top:80px;left:80px;width:180px;height:200px}
+#cloud-worker{top:60px;left:450px;width:200px;height:200px}
+#cloud-mqtt{top:60px;left:800px;width:200px;height:200px}
+#cloud-db{top:400px;left:450px;width:200px;height:200px}
+#cloud-nuxt{top:400px;left:800px;width:200px;height:200px}
+#esp32{top:400px;left:1150px;width:200px;height:180px}
+#relay{top:700px;left:1150px;width:200px;height:180px}
+#bombilla{top:700px;left:1500px;width:150px;height:150px}
+#fuente{top:920px;left:1300px;width:180px;height:140px}
+
+.wires{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.wires path{fill:none;stroke-width:2.5;stroke-linecap:round}
+.wire-data{stroke:#a855f7;stroke-dasharray:8 5;animation:dash 3s linear infinite}
+.wire-mqtt{stroke:#06b6d4;stroke-dasharray:6 4;animation:dash 2.5s linear infinite}
+.wire-db{stroke:#f59e0b;stroke-dasharray:5 4;animation:dash 4s linear infinite}
+.wire-hw{stroke:#4ade80;opacity:.7}
+.wire-power{stroke:#ef4444;opacity:.6}
+@keyframes dash{to{stroke-dashoffset:-26}}
+
+.info-panel{
+  position:fixed;right:40px;top:50%;width:320px;
+  background:rgba(255,255,255,.03);backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px;
+  opacity:0;pointer-events:none;
+  transform:translateY(-50%) translateX(30px);
+  transition:all .8s cubic-bezier(.22,.61,.36,1);
+}
+.info-panel.visible{opacity:1;pointer-events:all;transform:translateY(-50%) translateX(0)}
+.info-panel h2{
+  font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:10px;
+  background:linear-gradient(135deg,#a855f7,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.info-panel .tag{
+  display:inline-block;padding:4px 12px;
+  background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3);
+  border-radius:20px;font-size:.7rem;font-weight:600;color:#a855f7;margin-bottom:14px;
+}
+.info-panel p{font-size:.9rem;line-height:1.7;color:rgba(255,255,255,.7);font-weight:300}
+.info-panel .detail{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06);font-size:.78rem;color:rgba(255,255,255,.4)}
+
+.title-slide{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:50;background:#08080d;
+  transition:opacity .8s ease,transform .8s ease;
+}
+.title-slide.hidden{opacity:0;pointer-events:none;transform:scale(.95)}
+.title-slide h1{
+  font-family:'Space Grotesk',sans-serif;font-size:3.2rem;font-weight:800;
+  background:linear-gradient(135deg,#fff 30%,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.title-slide p{font-size:1.05rem;color:rgba(255,255,255,.45);font-weight:300;margin-top:10px}
+
+.nav{
+  position:fixed;bottom:36px;left:50%;transform:translateX(-50%);
+  display:flex;gap:12px;align-items:center;z-index:100;
+}
+.nav button{
+  width:48px;height:48px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);
+  backdrop-filter:blur(10px);color:#fff;font-size:1.1rem;cursor:pointer;
+  transition:all .3s ease;display:flex;align-items:center;justify-content:center;
+}
+.nav button:hover{background:rgba(168,85,247,.2);border-color:rgba(168,85,247,.5);transform:scale(1.1)}
+.nav .step{font-size:.75rem;color:rgba(255,255,255,.35);padding:0 14px;font-weight:600;letter-spacing:2px}
+
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#a855f7,#6366f1,#ec4899);transition:width 1.2s cubic-bezier(.22,.61,.36,1);z-index:200}
+
+.particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1}
+.particle{
+  position:absolute;width:2px;height:2px;background:rgba(168,85,247,.25);
+  border-radius:50%;animation:float linear infinite;
+}
+@keyframes float{
+  0%{transform:translateY(100vh);opacity:0}
+  10%{opacity:1}90%{opacity:1}
+  100%{transform:translateY(-50px);opacity:0}
+}
+.hint{position:fixed;bottom:92px;left:50%;transform:translateX(-50%);font-size:.7rem;color:rgba(255,255,255,.2);letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="particles" id="particles"></div>
+
+<div class="title-slide" id="titleSlide">
+  <h1>Smart Emotion Light</h1>
+  <p>ESP32-CAM · AWS Rekognition · MQTT · Nuxt — Detección de emociones en tiempo real</p>
+</div>
+
+<div class="circuit-world" id="world">
+  <svg class="wires" viewBox="0 0 2200 1200">
+    <!-- ESP32-CAM → Worker (data/imagen) -->
+    <path class="wire-data" d="M 260,180 C 350,180 380,160 450,160"/>
+    <!-- Worker → MQTT broker -->
+    <path class="wire-mqtt" d="M 650,160 C 720,160 750,160 800,160"/>
+    <!-- Worker → DB -->
+    <path class="wire-db" d="M 550,260 L 550,400"/>
+    <!-- MQTT → ESP32 -->
+    <path class="wire-mqtt" d="M 1000,160 C 1080,160 1100,300 1150,480"/>
+    <!-- MQTT → Nuxt -->
+    <path class="wire-mqtt" d="M 900,260 L 900,400"/>
+    <!-- DB → Nuxt -->
+    <path class="wire-db" d="M 650,500 C 720,500 750,500 800,500"/>
+    <!-- ESP32 → Relay -->
+    <path class="wire-hw" d="M 1250,580 L 1250,700"/>
+    <!-- Relay → Bombilla -->
+    <path class="wire-hw" d="M 1350,790 L 1500,775"/>
+    <!-- Fuente → Relay -->
+    <path class="wire-power" d="M 1380,920 L 1300,880 L 1250,880"/>
+  </svg>
+
+  <!-- ESP32-CAM -->
+  <div class="component" id="esp32cam">
+    <svg width="180" height="200" viewBox="0 0 180 200">
+      <rect x="5" y="5" width="170" height="190" rx="10" fill="#111" stroke="#333" stroke-width="2"/>
+      <rect x="40" y="18" width="100" height="75" rx="6" fill="#1a1a1a" stroke="#444" stroke-width="1"/>
+      <circle cx="90" cy="55" r="22" fill="#0d0d1a" stroke="#4a9eff" stroke-width="1.5"/>
+      <circle cx="90" cy="55" r="12" fill="#1a1a2e" stroke="#6366f1" stroke-width="1"/>
+      <circle cx="90" cy="55" r="5" fill="#050510"/>
+      <circle cx="87" cy="52" r="2" fill="rgba(255,255,255,.2)"/>
+      <rect x="25" y="110" width="130" height="6" rx="2" fill="#ddd"/>
+      <text x="25" y="140" font-size="7.5" fill="#888" font-family="monospace">RandomNerdTutorials</text>
+      <text x="38" y="160" font-size="12" fill="#fff" font-weight="bold" font-family="monospace">ESP32-CAM</text>
+      <rect x="18" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="30" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="42" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="54" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="120" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="132" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="144" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+      <rect x="156" y="178" width="5" height="12" rx="1" fill="#ffd700"/>
+    </svg>
+  </div>
+
+  <!-- AWS EC2 Worker -->
+  <div class="component" id="cloud-worker">
+    <svg width="200" height="200" viewBox="0 0 200 200">
+      <rect x="10" y="10" width="180" height="180" rx="16" fill="#1a0d2e" stroke="#7c3aed" stroke-width="1.5"/>
+      <!-- Nube AWS -->
+      <ellipse cx="100" cy="65" rx="38" ry="25" fill="#7c3aed" opacity=".8"/>
+      <ellipse cx="72" cy="75" rx="22" ry="18" fill="#7c3aed" opacity=".8"/>
+      <ellipse cx="128" cy="75" rx="22" ry="18" fill="#7c3aed" opacity=".8"/>
+      <rect x="62" y="75" width="76" height="20" rx="0" fill="#7c3aed" opacity=".8"/>
+      <!-- Engranaje worker -->
+      <circle cx="100" cy="115" r="14" fill="none" stroke="#a855f7" stroke-width="3"/>
+      <circle cx="100" cy="115" r="6" fill="#a855f7"/>
+      <line x1="100" y1="97" x2="100" y2="133" stroke="#a855f7" stroke-width="3"/>
+      <line x1="82" y1="115" x2="118" y2="115" stroke="#a855f7" stroke-width="3"/>
+      <line x1="87" y1="102" x2="113" y2="128" stroke="#a855f7" stroke-width="2"/>
+      <line x1="113" y1="102" x2="87" y2="128" stroke="#a855f7" stroke-width="2"/>
+      <text x="100" y="162" text-anchor="middle" font-size="10" fill="#a855f7" font-family="'Space Grotesk',sans-serif" font-weight="600">EC2 Worker</text>
+      <text x="100" y="177" text-anchor="middle" font-size="8" fill="#6d28d9" font-family="monospace">Rekognition</text>
+    </svg>
+  </div>
+
+  <!-- AWS MQTT Broker -->
+  <div class="component" id="cloud-mqtt">
+    <svg width="200" height="200" viewBox="0 0 200 200">
+      <rect x="10" y="10" width="180" height="180" rx="16" fill="#0d1f2d" stroke="#06b6d4" stroke-width="1.5"/>
+      <ellipse cx="100" cy="65" rx="38" ry="25" fill="#0e7490" opacity=".8"/>
+      <ellipse cx="72" cy="75" rx="22" ry="18" fill="#0e7490" opacity=".8"/>
+      <ellipse cx="128" cy="75" rx="22" ry="18" fill="#0e7490" opacity=".8"/>
+      <rect x="62" y="75" width="76" height="20" fill="#0e7490" opacity=".8"/>
+      <!-- Ondas MQTT -->
+      <path d="M 75,120 Q 100,105 125,120" fill="none" stroke="#06b6d4" stroke-width="2.5" opacity=".5"/>
+      <path d="M 65,130 Q 100,110 135,130" fill="none" stroke="#06b6d4" stroke-width="2.5" opacity=".7"/>
+      <path d="M 55,140 Q 100,115 145,140" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+      <circle cx="100" cy="118" r="4" fill="#06b6d4"/>
+      <text x="100" y="165" text-anchor="middle" font-size="10" fill="#06b6d4" font-family="'Space Grotesk',sans-serif" font-weight="600">MQTT Broker</text>
+      <text x="100" y="180" text-anchor="middle" font-size="8" fill="#0e7490" font-family="monospace">AWS IoT Core</text>
+    </svg>
+  </div>
+
+  <!-- AWS Database -->
+  <div class="component" id="cloud-db">
+    <svg width="200" height="200" viewBox="0 0 200 200">
+      <rect x="10" y="10" width="180" height="180" rx="16" fill="#1a1500" stroke="#f59e0b" stroke-width="1.5"/>
+      <ellipse cx="100" cy="65" rx="38" ry="25" fill="#92400e" opacity=".8"/>
+      <ellipse cx="72" cy="75" rx="22" ry="18" fill="#92400e" opacity=".8"/>
+      <ellipse cx="128" cy="75" rx="22" ry="18" fill="#92400e" opacity=".8"/>
+      <rect x="62" y="75" width="76" height="20" fill="#92400e" opacity=".8"/>
+      <!-- DB cilindros -->
+      <ellipse cx="100" cy="108" rx="28" ry="9" fill="#1a1500" stroke="#f59e0b" stroke-width="1.5"/>
+      <rect x="72" y="108" width="56" height="22" fill="#1a1500" stroke="#f59e0b" stroke-width="1.5"/>
+      <ellipse cx="100" cy="130" rx="28" ry="9" fill="#1a1500" stroke="#f59e0b" stroke-width="1.5"/>
+      <rect x="72" y="130" width="56" height="18" fill="#1a1500"/>
+      <ellipse cx="100" cy="148" rx="28" ry="9" fill="#f59e0b" opacity=".15" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="100" y="170" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="'Space Grotesk',sans-serif" font-weight="600">Database</text>
+      <text x="100" y="185" text-anchor="middle" font-size="8" fill="#92400e" font-family="monospace">AWS RDS / DynamoDB</text>
+    </svg>
+  </div>
+
+  <!-- Nuxt App -->
+  <div class="component" id="cloud-nuxt">
+    <svg width="200" height="200" viewBox="0 0 200 200">
+      <rect x="10" y="10" width="180" height="180" rx="16" fill="#001a0d" stroke="#00dc82" stroke-width="1.5"/>
+      <ellipse cx="100" cy="65" rx="38" ry="25" fill="#065f46" opacity=".8"/>
+      <ellipse cx="72" cy="75" rx="22" ry="18" fill="#065f46" opacity=".8"/>
+      <ellipse cx="128" cy="75" rx="22" ry="18" fill="#065f46" opacity=".8"/>
+      <rect x="62" y="75" width="76" height="20" fill="#065f46" opacity=".8"/>
+      <!-- Monitor / browser -->
+      <rect x="55" y="105" width="90" height="55" rx="6" fill="#022c1a" stroke="#00dc82" stroke-width="1.5"/>
+      <rect x="60" y="110" width="80" height="40" rx="3" fill="#011a10"/>
+      <rect x="63" y="113" width="74" height="34" rx="2" fill="#00dc82" opacity=".1"/>
+      <text x="100" y="134" text-anchor="middle" font-size="9" fill="#00dc82" font-family="monospace">😊 82%</text>
+      <text x="100" y="174" text-anchor="middle" font-size="10" fill="#00dc82" font-family="'Space Grotesk',sans-serif" font-weight="600">Nuxt Dashboard</text>
+      <text x="100" y="189" text-anchor="middle" font-size="8" fill="#065f46" font-family="monospace">EC2 / Vercel</text>
+    </svg>
+  </div>
+
+  <!-- ESP32 DevKit -->
+  <div class="component" id="esp32">
+    <svg width="200" height="180" viewBox="0 0 200 180">
+      <rect x="5" y="5" width="190" height="170" rx="10" fill="#1a1a2e" stroke="#333" stroke-width="2"/>
+      <rect x="20" y="20" width="70" height="45" rx="4" fill="#2d2d44"/>
+      <circle cx="35" cy="35" r="5" fill="#ff4757"/>
+      <circle cx="55" cy="35" r="5" fill="#ffd700"/>
+      <text x="23" y="58" font-size="7" fill="#666" font-family="monospace">EN   BOOT</text>
+      <rect x="100" y="15" width="75" height="60" rx="8" fill="#1e3a5f" stroke="#4a9eff" stroke-width="1"/>
+      <text x="120" y="45" font-size="10" fill="#4a9eff" font-family="monospace">ESP32</text>
+      <text x="108" y="60" font-size="7.5" fill="#4a9eff" font-family="monospace">WROOM-32</text>
+      <!-- WiFi symbol -->
+      <path d="M 152,100 Q 165,90 178,100" fill="none" stroke="#4a9eff" stroke-width="2" opacity=".5"/>
+      <path d="M 148,107 Q 165,94 182,107" fill="none" stroke="#4a9eff" stroke-width="2" opacity=".7"/>
+      <circle cx="165" cy="112" r="3" fill="#4a9eff"/>
+      <rect x="15" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="28" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="41" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="54" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="140" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="153" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <rect x="166" y="160" width="6" height="12" rx="1" fill="#ffd700"/>
+      <text x="10" y="156" font-size="6" fill="#555" font-family="monospace">3V3 GND D2 D4</text>
+    </svg>
+  </div>
+
+  <!-- Relay -->
+  <div class="component" id="relay">
+    <svg width="200" height="180" viewBox="0 0 200 180">
+      <rect x="5" y="5" width="190" height="170" rx="10" fill="#0d1b2a" stroke="#1b3a5c" stroke-width="2"/>
+      <rect x="20" y="30" width="70" height="90" rx="6" fill="#1a2a4a" stroke="#2a4a7a" stroke-width="1"/>
+      <rect x="110" y="30" width="70" height="90" rx="6" fill="#1a2a4a" stroke="#2a4a7a" stroke-width="1"/>
+      <rect x="28" y="40" width="54" height="68" rx="4" fill="#2563eb"/>
+      <rect x="118" y="40" width="54" height="68" rx="4" fill="#2563eb"/>
+      <text x="46" y="78" font-size="8" fill="#fff" font-family="monospace">RELAY</text>
+      <text x="136" y="78" font-size="8" fill="#fff" font-family="monospace">RELAY</text>
+      <rect x="22" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <rect x="40" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <rect x="58" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <rect x="112" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <rect x="130" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <rect x="148" y="140" width="10" height="14" rx="2" fill="#2ed573"/>
+      <text x="20" y="168" font-size="6" fill="#555" font-family="monospace">NO  COM  NC</text>
+      <text x="55" y="20" font-size="8" fill="#4a9eff" font-family="monospace" text-anchor="middle">2-Channel Relay</text>
+      <rect x="22" y="0" width="8" height="12" rx="2" fill="#ffd700"/>
+      <rect x="38" y="0" width="8" height="12" rx="2" fill="#ffd700"/>
+      <rect x="54" y="0" width="8" height="12" rx="2" fill="#ffd700"/>
+      <rect x="70" y="0" width="8" height="12" rx="2" fill="#ffd700"/>
+    </svg>
+  </div>
+
+  <!-- Bombilla LED -->
+  <div class="component" id="bombilla">
+    <svg width="150" height="150" viewBox="0 0 150 150">
+      <circle cx="75" cy="75" r="58" fill="#111" stroke="#333" stroke-width="2"/>
+      <circle cx="75" cy="75" r="34" fill="#1a1a0a" stroke="#666" stroke-width="1"/>
+      <circle cx="75" cy="75" r="18" fill="rgba(255,215,0,.07)"/>
+      <path d="M 60,75 Q 67.5,58 75,75 Q 82.5,92 90,75" fill="none" stroke="#ffd700" stroke-width="2.5" opacity=".85"/>
+      <rect x="57" y="128" width="7" height="14" rx="2" fill="#999"/>
+      <rect x="86" y="128" width="7" height="14" rx="2" fill="#999"/>
+      <circle cx="25" cy="25" r="5" fill="none" stroke="#444" stroke-width="1"/>
+      <circle cx="125" cy="25" r="5" fill="none" stroke="#444" stroke-width="1"/>
+      <circle cx="25" cy="125" r="5" fill="none" stroke="#444" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- Fuente -->
+  <div class="component" id="fuente">
+    <svg width="180" height="140" viewBox="0 0 180 140">
+      <rect x="10" y="5" width="160" height="100" rx="18" fill="#111" stroke="#333" stroke-width="2"/>
+      <text x="90" y="48" text-anchor="middle" font-size="22" fill="#fff" font-weight="bold" font-family="'Space Grotesk',sans-serif">5v</text>
+      <text x="90" y="75" text-anchor="middle" font-size="16" fill="#aaa" font-family="'Space Grotesk',sans-serif">2 Amp</text>
+      <path d="M 90,105 L 90,120" stroke="#333" stroke-width="4" stroke-linecap="round"/>
+      <rect x="65" y="120" width="50" height="18" rx="7" fill="#222" stroke="#444" stroke-width="1"/>
+      <rect x="73" y="132" width="4" height="10" rx="2" fill="#999"/>
+      <rect x="103" y="132" width="4" height="10" rx="2" fill="#4a9eff"/>
+    </svg>
+  </div>
+</div>
+
+<div class="info-panel" id="infoPanel">
+  <span class="tag" id="infoTag"></span>
+  <h2 id="infoTitle"></h2>
+  <p id="infoText"></p>
+  <div class="detail" id="infoDetail"></div>
+</div>
+
+<div class="nav">
+  <button id="prevBtn">←</button>
+  <span class="step" id="stepInd">0 / 8</span>
+  <button id="nextBtn">→</button>
+</div>
+<div class="hint">← → para navegar</div>
+
+<script>
+const world = document.getElementById('world');
+const infoPanel = document.getElementById('infoPanel');
+const titleSlide = document.getElementById('titleSlide');
+const progress = document.getElementById('progress');
+const stepInd = document.getElementById('stepInd');
+
+// Cada slide: transform del world para centrar ese componente, + info panel
+const slides = [
+  {
+    // 0 - Título (full screen overlay, world en vista general)
+    tx: -50, ty: -50, scale: 0.38, rot: 0,
+    titleVisible: true,
+    highlight: null,
+  },
+  {
+    // 1 - Vista general del circuito
+    tx: -50, ty: -50, scale: 0.38, rot: 0,
+    titleVisible: false,
+    highlight: null,
+    tag: 'OVERVIEW', title: 'El Sistema Completo',
+    text: 'Una cámara detecta tu emoción, la procesa en AWS, y según el resultado enciende una luz.',
+    detail: 'ESP32-CAM → EC2 → MQTT → ESP32 → Relay → Bombilla'
+  },
+  {
+    // 2 - ESP32-CAM
+    tx: -7, ty: -11, scale: 2.4, rot: -1,
+    titleVisible: false,
+    highlight: 'esp32cam',
+    tag: 'HARDWARE', title: 'ESP32-CAM',
+    text: 'Captura una foto de tu rostro y la envía vía WiFi al Worker en AWS para análisis.',
+    detail: 'OV2640 · 2MP · WiFi 802.11b/g/n · GPIO pins para flash LED'
+  },
+  {
+    // 3 - EC2 Worker
+    tx: -30, ty: -11, scale: 2.2, rot: 1,
+    titleVisible: false,
+    highlight: 'cloud-worker',
+    tag: 'AWS EC2', title: 'Worker + Rekognition',
+    text: 'Una instancia EC2 recibe la imagen, la manda a AWS Rekognition y obtiene las estadísticas de emoción.',
+    detail: 'Rekognition DetectFaces → {HAPPY: 94%, CALM: 12%...} → guarda en DB → publica en MQTT'
+  },
+  {
+    // 4 - MQTT Broker
+    tx: -55, ty: -11, scale: 2.2, rot: -1,
+    titleVisible: false,
+    highlight: 'cloud-mqtt',
+    tag: 'AWS IoT Core', title: 'MQTT Broker',
+    text: 'El Worker publica el resultado en un topic MQTT. El ESP32 y el Dashboard se suscriben para recibir el evento.',
+    detail: 'Topic: emotion/result · QoS 1 · Pub: Worker · Sub: ESP32 DevKit + Nuxt app'
+  },
+  {
+    // 5 - Database
+    tx: -30, ty: -55, scale: 2.2, rot: 1,
+    titleVisible: false,
+    highlight: 'cloud-db',
+    tag: 'BASE DE DATOS', title: 'Database',
+    text: 'El Worker guarda cada análisis en la base de datos: timestamp, emoción detectada, scores y si se activó la luz.',
+    detail: 'Tabla: emotion_events(id, ts, emotion, score, light_on) · Histórico para el dashboard'
+  },
+  {
+    // 6 - Nuxt Dashboard
+    tx: -55, ty: -55, scale: 2.2, rot: -1,
+    titleVisible: false,
+    highlight: 'cloud-nuxt',
+    tag: 'WEB APP', title: 'Nuxt Dashboard',
+    text: 'App web en Nuxt que muestra en tiempo real las emociones detectadas, histórico y stats. Se actualiza via MQTT.',
+    detail: 'Nuxt 3 · Server-Sent Events o WebSocket · Gráficos de emociones a lo largo del tiempo'
+  },
+  {
+    // 7 - ESP32 DevKit
+    tx: -78, ty: -55, scale: 2.4, rot: 1,
+    titleVisible: false,
+    highlight: 'esp32',
+    tag: 'HARDWARE', title: 'ESP32 DevKit',
+    text: 'Suscripto al MQTT broker. Cuando recibe HAPPY con score > 80%, activa el relay por GPIO2.',
+    detail: 'GPIO2 → IN1 relay · Lógica: if emotion=="HAPPY" && score>80 → digitalWrite(HIGH)'
+  },
+  {
+    // 8 - Relay + Bombilla + Fuente
+    tx: -82, ty: -80, scale: 2.0, rot: -1,
+    titleVisible: false,
+    highlight: 'relay',
+    tag: 'ACTUADOR', title: 'Relay → Bombilla',
+    text: 'El relay cierra el circuito y enciende la bombilla. Alimentada por la fuente 5V. Si la emoción cambia, se apaga.',
+    detail: 'Relay NO (Normally Open) · Fuente 5V 2A · Bombilla LED de potencia'
+  }
+];
+
+let cur = 0;
+
+function goTo(i) {
+  if (i < 0 || i >= slides.length) return;
+  cur = i;
+  const s = slides[i];
+
+  // Transform: centra el world en el componente objetivo
+  world.style.transform =
+    `translate(${s.tx}%, ${s.ty}%) scale(${s.scale}) rotate(${s.rot}deg)`;
+
+  // Title slide
+  if (s.titleVisible) {
+    titleSlide.classList.remove('hidden');
+  } else {
+    titleSlide.classList.add('hidden');
+  }
+
+  // Info panel
+  if (s.tag) {
+    document.getElementById('infoTag').textContent = s.tag;
+    document.getElementById('infoTitle').textContent = s.title;
+    document.getElementById('infoText').textContent = s.text;
+    document.getElementById('infoDetail').textContent = s.detail;
+    infoPanel.classList.add('visible');
+  } else {
+    infoPanel.classList.remove('visible');
+  }
+
+  // Highlight
+  document.querySelectorAll('.component').forEach(c => {
+    if (s.highlight && c.id !== s.highlight) c.classList.add('dimmed');
+    else c.classList.remove('dimmed');
+  });
+
+  // Progress & step
+  progress.style.width = (i / (slides.length - 1) * 100) + '%';
+  stepInd.textContent = `${i} / ${slides.length - 1}`;
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => goTo(cur + 1));
+document.getElementById('prevBtn').addEventListener('click', () => goTo(cur - 1));
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') goTo(cur + 1);
+  if (e.key === 'ArrowLeft') goTo(cur - 1);
+});
+let tx0 = 0;
+document.addEventListener('touchstart', e => tx0 = e.touches[0].clientX);
+document.addEventListener('touchend', e => {
+  const d = e.changedTouches[0].clientX - tx0;
+  if (d < -50) goTo(cur + 1);
+  if (d > 50) goTo(cur - 1);
+});
+
+// Partículas
+const pc = document.getElementById('particles');
+for (let i = 0; i < 25; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.cssText = `left:${Math.random()*100}%;animation-duration:${9+Math.random()*12}s;animation-delay:${Math.random()*10}s`;
+  pc.appendChild(p);
+}
+
+goTo(0);
+</script>
+</body>
+</html>
